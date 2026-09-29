@@ -1,0 +1,96 @@
+import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { supabase } from '../lib/supabase';
+import { api } from '../lib/api';
+
+const AuthContext = createContext(null);
+const PENDING_COMPANY_KEY = 'pendingCompanyName';
+
+export function AuthProvider({ children }) {
+  const [session, setSession] = useState(undefined); // undefined = still loading
+  const [profile, setProfile] = useState(null);       // { id, company_id, email, role }
+  const [profileError, setProfileError] = useState(null);
+  const [profileLoading, setProfileLoading] = useState(false);
+
+  const loadProfile = useCallback(async () => {
+    setProfileLoading(true);
+    try {
+      setProfileError(null);
+      const me = await api.get('/me');
+      setProfile(me);
+    } catch (err) {
+      // No matching `users` row yet. If this session came from the sign-up
+      // flow, a company name is waiting in localStorage — finish onboarding
+      // automatically (covers both "confirmation disabled" sign-ups, which
+      // land here immediately, and "confirm by email" ones, which land here
+      // after the person logs in post-confirmation).
+      const pendingCompany = localStorage.getItem(PENDING_COMPANY_KEY);
+      if (pendingCompany) {
+        try {
+          await api.post('/onboarding/company', { companyName: pendingCompany });
+          localStorage.removeItem(PENDING_COMPANY_KEY);
+          const me = await api.get('/me');
+          setProfile(me);
+          return;
+        } catch (onboardErr) {
+          localStorage.removeItem(PENDING_COMPANY_KEY);
+          setProfile(null);
+          setProfileError(onboardErr.message);
+          return;
+        }
+      }
+      setProfile(null);
+      setProfileError(err.message);
+    } finally {
+      setProfileLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => setSession(session));
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (session) loadProfile();
+    else setProfile(null);
+  }, [session, loadProfile]);
+
+  const signIn = (email, password) => supabase.auth.signInWithPassword({ email, password });
+  const signOut = () => supabase.auth.signOut();
+
+  // Stashes the chosen company name, then creates the Supabase auth account.
+  // Onboarding itself happens in loadProfile() above once a session exists.
+  const signUpWithCompany = async (companyName, email, password) => {
+    localStorage.setItem(PENDING_COMPANY_KEY, companyName);
+    const result = await supabase.auth.signUp({ email, password });
+    if (result.error) localStorage.removeItem(PENDING_COMPANY_KEY);
+    return result;
+  };
+
+  const value = {
+    session,
+    profile,
+    profileError,
+    profileLoading,
+    loading: session === undefined,
+    signIn,
+    signOut,
+    signUpWithCompany,
+    reloadProfile: loadProfile,
+  };
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  return ctx;
+}
+
+const ROLE_RANK = { viewer: 0, manager: 1, accountant: 2, admin: 3 };
+export function hasRole(profile, minRole) {
+  if (!profile) return false;
+  return ROLE_RANK[profile.role] >= ROLE_RANK[minRole];
+}
