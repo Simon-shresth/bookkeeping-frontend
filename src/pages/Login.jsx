@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import { Box, Paper, TextField, Button, Typography, Alert, Link } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
   const { signIn } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -15,8 +17,12 @@ export default function Login() {
     setSubmitting(true);
     setError('');
     const { error } = await signIn(email, password);
-    if (error) setError(error.message);
     setSubmitting(false);
+    if (error) { setError(error.message); return; }
+    // Send them back to whatever page they originally tried to reach
+    // (ProtectedRoute redirects here with that as location.state.from),
+    // or the dashboard if they just landed here directly.
+    navigate(location.state?.from || '/', { replace: true });
   };
 
   return (
