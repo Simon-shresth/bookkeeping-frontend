@@ -1,12 +1,15 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Box, Typography, Select, MenuItem, ListSubheader, Table, TableHead, TableRow, TableCell, TableBody, CircularProgress, Alert, Chip } from '@mui/material';
-import { api } from '../lib/api';
+import { Box, Typography, Select, MenuItem, ListSubheader, Table, TableHead, TableRow, TableCell, TableBody, CircularProgress, Alert, Chip, TextField, Button } from '@mui/material';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdfOutlined';
+import { api, saveBlob } from '../lib/api';
 import Money from '../components/Money';
 
 export default function GeneralLedger() {
   const { data: accounts, isLoading: loadingAccounts } = useQuery({ queryKey: ['account-options'], queryFn: () => api.get('/accounts/options') });
   const [accountId, setAccountId] = useState('');
+  const [from, setFrom] = useState('');
+  const [till, setTill] = useState('');
 
   const grouped = useMemo(() => {
     if (!accounts) return {};
@@ -15,11 +18,23 @@ export default function GeneralLedger() {
     return byHeading;
   }, [accounts]);
 
+  const query = new URLSearchParams();
+  if (from) query.set('from', from);
+  if (till) query.set('till', till);
+  const qs = query.toString();
+
   const { data: ledger, isLoading: loadingLedger, error } = useQuery({
-    queryKey: ['ledger', accountId],
-    queryFn: () => api.get(`/ledger/${accountId}`),
+    queryKey: ['ledger', accountId, from, till],
+    queryFn: () => api.get(`/ledger/${accountId}${qs ? `?${qs}` : ''}`),
     enabled: !!accountId,
   });
+
+  const downloadPdf = async () => {
+    try {
+      const blob = await api.blob(`/ledger/${accountId}/pdf${qs ? `?${qs}` : ''}`);
+      saveBlob(blob, `ledger-${ledger.account.name.replace(/[^A-Za-z0-9._-]/g, '_')}.pdf`);
+    } catch (err) { alert(err.message); }
+  };
 
   if (loadingAccounts) return <CircularProgress size={24} />;
 
@@ -27,21 +42,30 @@ export default function GeneralLedger() {
     <Box>
       <Typography variant="h4" sx={{ mb: 2 }}>General Ledger</Typography>
 
-      <Select
-        value={accountId}
-        onChange={(e) => setAccountId(e.target.value)}
-        displayEmpty
-        size="small"
-        sx={{ minWidth: 320, mb: 3 }}
-      >
-        <MenuItem value="" disabled>Select an account…</MenuItem>
-        {Object.entries(grouped).map(([heading, accs]) => [
-          <ListSubheader key={heading}>{heading}</ListSubheader>,
-          ...accs.map((a) => <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>),
-        ])}
-      </Select>
+      <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap', mb: 3 }}>
+        <Select
+          value={accountId}
+          onChange={(e) => setAccountId(e.target.value)}
+          displayEmpty
+          size="small"
+          sx={{ minWidth: 280 }}
+        >
+          <MenuItem value="" disabled>Select an account…</MenuItem>
+          {Object.entries(grouped).map(([heading, accs]) => [
+            <ListSubheader key={heading}>{heading}</ListSubheader>,
+            ...accs.map((a) => <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>),
+          ])}
+        </Select>
+        <TextField size="small" type="date" label="From" value={from} onChange={(e) => setFrom(e.target.value)} InputLabelProps={{ shrink: true }} />
+        <TextField size="small" type="date" label="Till" value={till} onChange={(e) => setTill(e.target.value)} InputLabelProps={{ shrink: true }} />
+        {accountId && (
+          <Button size="small" variant="outlined" startIcon={<PictureAsPdfIcon />} onClick={downloadPdf} disabled={!ledger}>
+            Download PDF
+          </Button>
+        )}
+      </Box>
 
-      {!accountId && <Typography variant="body2" color="text.secondary">Choose an account to view its ledger.</Typography>}
+      {!accountId && <Typography variant="body2" color="text.secondary">Choose an account to view its ledger. Leave From/Till blank to see everything.</Typography>}
       {error && <Alert severity="error">{error.message}</Alert>}
       {loadingLedger && <CircularProgress size={24} />}
 
@@ -70,7 +94,7 @@ export default function GeneralLedger() {
                 <TableCell align="right" sx={{ opacity: 0.6 }}><Money value={ledger.openingBalance} /></TableCell>
               </TableRow>
               {ledger.entries.length === 0 ? (
-                <TableRow><TableCell colSpan={6} align="center" sx={{ fontStyle: 'italic', opacity: 0.6 }}>No entries posted to this account yet.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} align="center" sx={{ fontStyle: 'italic', opacity: 0.6 }}>No entries posted to this account in this period.</TableCell></TableRow>
               ) : (
                 ledger.entries.map((e, i) => (
                   <TableRow key={i}>

@@ -78,6 +78,21 @@ set **Site URL** to your deployed frontend URL, and add
 `/reset-password` URL to **Redirect URLs** — otherwise reset and invite
 links will be rejected.
 
+## What's new in this round of changes
+
+- **Nepali number formatting** throughout — `src/components/Money.jsx` now
+  groups digits lakh/crore style (e.g. Rs. 12,34,567.89).
+- **Sales and Purchases support multiple products per invoice** — add/remove
+  product rows in the invoice dialog; each shows its unit of measurement.
+- **Products have a unit of measurement** (pcs, kg, ltr, box, or custom).
+- **Sales gained Cash Sale and Discount** — a cash sale skips the credit
+  workflow entirely; discount reduces the total and is shown as its own line.
+- **Search in Sales/Purchases** now only runs when you press Enter or click
+  Search, not on every keystroke.
+- **The app no longer refetches everything when you switch back to the tab**
+  — data now only reloads when something you did actually changed it.
+- **General Ledger** has From/Till date filters and a "Download PDF" button.
+
 ## What's new in Phase 4
 
 - **Payments** page — record and edit money received/paid outside of

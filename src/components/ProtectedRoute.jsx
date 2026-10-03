@@ -1,9 +1,10 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { Box, CircularProgress, Alert, Button, Typography } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
 
 export default function ProtectedRoute({ children }) {
   const { loading, session, profile, profileError, profileLoading, signOut, reloadProfile } = useAuth();
+  const location = useLocation();
 
   if (loading || (session && !profile && !profileError) || profileLoading) {
     return (
@@ -13,7 +14,7 @@ export default function ProtectedRoute({ children }) {
     );
   }
 
-  if (!session) return <Navigate to="/login" replace />;
+  if (!session) return <Navigate to="/login" replace state={{ from: location.pathname }} />;
 
   if (profileError) {
     return (

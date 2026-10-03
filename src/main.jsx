@@ -8,7 +8,13 @@ import theme from './theme';
 import { AuthProvider } from './context/AuthContext';
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 1, staleTime: 10_000 } },
+  defaultOptions: {
+    // Only refetch when data actually changes (via invalidateQueries after a
+    // mutation) or on a fresh page load — not just from switching tabs and
+    // back, which is react-query's default behavior and was the cause of
+    // the "page refreshes every time I come back to it" complaint.
+    queries: { retry: 1, staleTime: 10_000, refetchOnWindowFocus: false },
+  },
 });
 
 ReactDOM.createRoot(document.getElementById('root')).render(
