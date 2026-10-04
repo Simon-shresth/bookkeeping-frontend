@@ -14,7 +14,6 @@ const NAV_ITEMS = [
   { label: 'Products', path: '/products' },
   { label: 'Sales', path: '/sales' },
   { label: 'Purchases', path: '/purchases' },
-  { label: 'Salary', path: '/salary' },
   { label: 'Expenses', path: '/expenses' },
   { label: 'Payments', path: '/payments' },
   { label: 'Bank Reconciliation', path: '/reconciliation', minRole: 'accountant' },
