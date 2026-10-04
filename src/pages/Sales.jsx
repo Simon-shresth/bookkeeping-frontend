@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Box, Typography, Button, Table, TableHead, TableRow, TableCell, TableBody, Dialog, DialogTitle,
   DialogContent, DialogActions, TextField, Select, MenuItem, IconButton, Chip, Alert, CircularProgress,
-  Checkbox, FormControlLabel, InputAdornment,
+  Checkbox, FormControlLabel,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
@@ -13,7 +13,7 @@ import { api, saveBlob } from '../lib/api';
 import Money from '../components/Money';
 import { useAuth, hasRole } from '../context/AuthContext';
 
-const emptyLine = () => ({ productId: '', qty: 1, price: '' });
+const emptyLine = () => ({ productId: '', qty: 1, price: '', unit: '' });
 const emptyForm = () => ({ invoiceNumber: '', customerId: '', lines: [emptyLine()], discount: 0, cashSale: false, paidAmount: 0, accountId: '' });
 
 export default function Sales() {
@@ -47,7 +47,7 @@ export default function Sales() {
     setForm({
       invoiceNumber: s.invoice_number || '',
       customerId: s.customer_id,
-      lines: s.lines.map((l) => ({ productId: l.product_id, qty: l.qty, price: l.price })),
+      lines: s.lines.map((l) => ({ productId: l.product_id, qty: l.qty, price: l.price, unit: l.unit })),
       discount: s.discount || 0,
       cashSale: s.cash_sale,
       paidAmount: s.paid_amount,
@@ -58,7 +58,20 @@ export default function Sales() {
 
   const onProductChange = (i, productId) => {
     const p = productById[productId];
-    setForm((f) => ({ ...f, lines: f.lines.map((l, j) => (j === i ? { ...l, productId, price: p ? p.sell_price : l.price } : l)) }));
+    setForm((f) => ({ ...f, lines: f.lines.map((l, j) => (j === i ? { ...l, productId, unit: p ? p.unit : '', price: p ? p.sell_price : l.price } : l)) }));
+  };
+
+  // Switching between a product's base and alternate unit re-suggests the
+  // price for that unit (editable afterwards) — e.g. a fabric priced per
+  // Meter suggests price x factor when switched to Yards.
+  const onUnitChange = (i, unit) => {
+    setForm((f) => ({ ...f, lines: f.lines.map((l, j) => {
+      if (j !== i) return l;
+      const p = productById[l.productId];
+      if (!p) return { ...l, unit };
+      const price = unit === p.unit ? p.sell_price : unit === p.alt_unit ? Math.round(p.sell_price * p.alt_unit_factor * 100) / 100 : l.price;
+      return { ...l, unit, price };
+    }) }));
   };
 
   const subtotal = form.lines.reduce((s, l) => s + (+l.qty || 0) * (+l.price || 0), 0);
@@ -70,7 +83,7 @@ export default function Sales() {
   const body = () => ({
     invoiceNumber: form.invoiceNumber || undefined,
     customerId: form.customerId,
-    lines: form.lines.filter((l) => l.productId).map((l) => ({ productId: l.productId, qty: +l.qty, price: +l.price })),
+    lines: form.lines.filter((l) => l.productId).map((l) => ({ productId: l.productId, qty: +l.qty, price: +l.price, unit: l.unit })),
     discount: +form.discount || 0,
     cashSale: form.cashSale,
     paidAmount: form.cashSale ? 0 : (+form.paidAmount || 0),
@@ -97,7 +110,7 @@ export default function Sales() {
     } catch (err) { alert(err.message); }
   };
 
-  const canSubmit = form.customerId && form.lines.some((l) => l.productId && +l.qty > 0) && form.accountId;
+  const canSubmit = form.customerId && form.lines.some((l) => l.productId && +l.qty > 0 && l.unit) && form.accountId;
 
   if (isLoading) return <CircularProgress size={24} />;
   if (error) return <Alert severity="error">{error.message}</Alert>;
@@ -180,8 +193,15 @@ export default function Sales() {
                   <MenuItem value="" disabled>Product…</MenuItem>
                   {(products || []).map((prod) => <MenuItem key={prod.id} value={prod.id}>{prod.name} (stock: {prod.stock} {prod.unit})</MenuItem>)}
                 </Select>
-                <TextField type="number" label="Qty" value={line.qty} onChange={(e) => setLine(i, 'qty', e.target.value)} sx={{ flex: 1 }}
-                  InputProps={{ endAdornment: p ? <InputAdornment position="end">{p.unit}</InputAdornment> : null }} />
+                {p && p.alt_unit ? (
+                  <Select value={line.unit} onChange={(e) => onUnitChange(i, e.target.value)} sx={{ flex: 1 }}>
+                    <MenuItem value={p.unit}>{p.unit}</MenuItem>
+                    <MenuItem value={p.alt_unit}>{p.alt_unit}</MenuItem>
+                  </Select>
+                ) : (
+                  <TextField value={p ? p.unit : ''} InputProps={{ readOnly: true }} label="Unit" sx={{ flex: 1 }} />
+                )}
+                <TextField type="number" label="Qty" value={line.qty} onChange={(e) => setLine(i, 'qty', e.target.value)} sx={{ flex: 1 }} />
                 <TextField type="number" label="Price" value={line.price} onChange={(e) => setLine(i, 'price', e.target.value)} sx={{ flex: 1 }} />
                 <Typography variant="body2" sx={{ flex: 1, textAlign: 'right' }}><Money value={lineTotal} /></Typography>
                 <IconButton size="small" disabled={form.lines.length <= 1} onClick={() => setForm((f) => ({ ...f, lines: f.lines.filter((_, j) => j !== i) }))}>
