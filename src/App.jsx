@@ -20,6 +20,7 @@ import Sales from './pages/Sales';
 import Purchases from './pages/Purchases';
 import Expenses from './pages/Expenses';
 import Reports from './pages/Reports';
+import SalaryPage from './pages/Salary';
 
 export default function App() {
   return (
@@ -36,6 +37,7 @@ export default function App() {
           </ProtectedRoute>
         }
       >
+        <Route path="/salary" element={<SalaryPage />} /> 
         <Route index element={<Dashboard />} />
         <Route path="chart-of-accounts" element={<ChartOfAccounts />} />
         <Route path="journal" element={<JournalEntries />} />
