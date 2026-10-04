@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { formatNepaliNumber } from '../lib/formatters';
+import { formatNepaliNumber } from '../components/Money';
 
 export default function SalaryPage() {
   const [activeTab, setActiveTab] = useState('disburse'); // 'disburse', 'employees', 'history'
