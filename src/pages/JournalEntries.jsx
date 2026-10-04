@@ -156,6 +156,12 @@ export default function JournalEntries() {
               </Button>
             </Box>
           )}
+          {newAcctOpen && ['Sales', 'Cost of Goods Sold', 'Inventory', 'Discount Allowed'].includes(newAcctHeading) && (
+            <Alert severity="warning" sx={{ fontSize: 13 }}>
+              Sales, Purchases, and Cash Sales post automatically to the original system account under this heading —
+              never to a new one you create here. This account will only ever be used in entries you post manually.
+            </Alert>
+          )}
           {newAccountMutation.error && <Alert severity="error">{newAccountMutation.error.message}</Alert>}
 
           <Typography variant="body2" color="text.secondary">Lines</Typography>
