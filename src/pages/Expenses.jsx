@@ -10,7 +10,8 @@ import { api } from '../lib/api';
 import Money from '../components/Money';
 import { useAuth, hasRole } from '../context/AuthContext';
 
-const emptyForm = { categoryAccountId: '', note: '', amount: '', paymentAccountId: '' };
+const todayDate = () => new Date().toISOString().slice(0, 10);
+const emptyForm = () => ({ date: todayDate(), categoryAccountId: '', note: '', amount: '', paymentAccountId: '' });
 
 export default function Expenses() {
   const { profile } = useAuth();
@@ -24,17 +25,17 @@ export default function Expenses() {
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState(emptyForm());
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
-  const openNew = () => { setEditing(null); setForm({ ...emptyForm, categoryAccountId: expenseAccounts[0]?.id || '', paymentAccountId: liquidAccounts[0]?.id || '' }); setOpen(true); };
+  const openNew = () => { setEditing(null); setForm({ ...emptyForm(), categoryAccountId: expenseAccounts[0]?.id || '', paymentAccountId: liquidAccounts[0]?.id || '' }); setOpen(true); };
   const openEdit = (e) => {
     setEditing(e);
-    setForm({ categoryAccountId: e.category_account_id, note: e.note || '', amount: e.amount, paymentAccountId: e.payment_account_id });
+    setForm({ date: e.date || todayDate(), categoryAccountId: e.category_account_id, note: e.note || '', amount: e.amount, paymentAccountId: e.payment_account_id });
     setOpen(true);
   };
 
-  const body = () => ({ categoryAccountId: form.categoryAccountId, note: form.note, amount: +form.amount, paymentAccountId: form.paymentAccountId });
+  const body = () => ({ date: form.date, categoryAccountId: form.categoryAccountId, note: form.note, amount: +form.amount, paymentAccountId: form.paymentAccountId });
 
   const saveMutation = useMutation({
     mutationFn: () => (editing ? api.put(`/expenses/${editing.id}`, body()) : api.post('/expenses', body())),
@@ -85,6 +86,14 @@ export default function Expenses() {
         <DialogTitle>{editing ? 'Edit Expense' : 'New Expense'}</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
           {saveMutation.error && <Alert severity="error">{saveMutation.error.message}</Alert>}
+          <TextField
+            label="Date"
+            type="date"
+            value={form.date}
+            onChange={set('date')}
+            InputLabelProps={{ shrink: true }}
+            fullWidth
+          />
           <Select value={form.categoryAccountId} onChange={set('categoryAccountId')} displayEmpty fullWidth>
             <MenuItem value="" disabled>Category…</MenuItem>
             {expenseAccounts.map((a) => <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>)}

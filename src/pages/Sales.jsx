@@ -13,8 +13,9 @@ import { api, saveBlob } from '../lib/api';
 import Money from '../components/Money';
 import { useAuth, hasRole } from '../context/AuthContext';
 
+const todayDate = () => new Date().toISOString().slice(0, 10);
 const emptyLine = () => ({ productId: '', qty: 1, price: '', unit: '' });
-const emptyForm = () => ({ invoiceNumber: '', customerId: '', lines: [emptyLine()], discount: 0, cashSale: false, paidAmount: 0, accountId: '' });
+const emptyForm = () => ({ date: todayDate(), invoiceNumber: '', customerId: '', lines: [emptyLine()], discount: 0, cashSale: false, paidAmount: 0, accountId: '' });
 
 export default function Sales() {
   const { profile } = useAuth();
@@ -60,6 +61,7 @@ export default function Sales() {
   const openEdit = (s) => {
     setEditing(s);
     setForm({
+      date: s.date || todayDate(),
       invoiceNumber: s.invoice_number || '',
       customerId: s.customer_id,
       lines: s.lines.map((l) => ({ productId: l.product_id, qty: l.qty, price: l.price, unit: l.unit })),
@@ -93,6 +95,7 @@ export default function Sales() {
   const credit = form.cashSale ? 0 : Math.max(total - paid, 0);
 
   const body = () => ({
+    date: form.date,
     invoiceNumber: form.invoiceNumber || undefined,
     customerId: form.customerId,
     lines: form.lines.filter((l) => l.productId).map((l) => ({ productId: l.productId, qty: +l.qty, price: +l.price, unit: l.unit })),
@@ -231,6 +234,7 @@ export default function Sales() {
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
           {saveMutation.error && <Alert severity="error">{saveMutation.error.message}</Alert>}
           <Box sx={{ display: 'flex', gap: 2 }}>
+            <TextField label="Date" type="date" value={form.date} onChange={set('date')} InputLabelProps={{ shrink: true }} sx={{ width: 180 }} />
             <TextField label="Invoice Number" placeholder="e.g. INV-1001" value={form.invoiceNumber} onChange={set('invoiceNumber')} fullWidth />
             <Select value={form.customerId} onChange={set('customerId')} displayEmpty fullWidth>
               <MenuItem value="" disabled>Customer…</MenuItem>

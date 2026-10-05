@@ -12,9 +12,10 @@ import { api } from '../lib/api';
 import Money from '../components/Money';
 import { useAuth, hasRole } from '../context/AuthContext';
 
+const todayDate = () => new Date().toISOString().slice(0, 10);
 const NEW_PRODUCT = '__new__';
 const emptyLine = () => ({ productId: '', qty: 1, unitPrice: '', newName: '', newSellPrice: '', newMinStock: 0, newUnit: 'pcs' });
-const emptyForm = () => ({ invoiceNumber: '', pragyapanNumber: '', supplierId: '', lines: [emptyLine()], paidAmount: 0, accountId: '' });
+const emptyForm = () => ({ date: todayDate(), invoiceNumber: '', pragyapanNumber: '', supplierId: '', lines: [emptyLine()], paidAmount: 0, accountId: '' });
 
 export default function Purchases() {
   const { profile } = useAuth();
@@ -60,6 +61,7 @@ export default function Purchases() {
   const openEdit = (p) => {
     setEditing(p);
     setForm({
+      date: p.date || todayDate(),
       invoiceNumber: p.invoice_number || '', pragyapanNumber: p.pragyapan_number || '', supplierId: p.supplier_id,
       lines: p.lines.map((l) => ({ productId: l.product_id, qty: l.qty, unitPrice: l.unit_price, newName: '', newSellPrice: '', newMinStock: 0, newUnit: 'pcs' })),
       paidAmount: p.paid_amount, accountId: p.payment_account_id || liquidAccounts[0]?.id || '',
@@ -77,6 +79,7 @@ export default function Purchases() {
   const credit = Math.max(total - paid, 0);
 
   const body = () => ({
+    date: form.date,
     invoiceNumber: form.invoiceNumber || undefined,
     pragyapanNumber: form.pragyapanNumber || undefined,
     supplierId: form.supplierId,
@@ -210,6 +213,7 @@ export default function Purchases() {
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
           {saveMutation.error && <Alert severity="error">{saveMutation.error.message}</Alert>}
           <Box sx={{ display: 'flex', gap: 2 }}>
+            <TextField label="Date" type="date" value={form.date} onChange={set('date')} InputLabelProps={{ shrink: true }} sx={{ width: 180 }} />
             <TextField label="Invoice Number" placeholder="e.g. PINV-1001" value={form.invoiceNumber} onChange={set('invoiceNumber')} fullWidth />
             <TextField label="Pragyapan Patra Number" placeholder="e.g. PP-2082-001" value={form.pragyapanNumber} onChange={set('pragyapanNumber')} fullWidth />
           </Box>
