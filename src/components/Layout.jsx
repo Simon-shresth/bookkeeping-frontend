@@ -33,8 +33,13 @@ export default function Layout() {
         variant="permanent"
         sx={{ width: DRAWER_WIDTH, flexShrink: 0, '& .MuiDrawer-paper': { width: DRAWER_WIDTH, boxSizing: 'border-box', borderRight: '1px solid', borderColor: 'divider' } }}
       >
-        <Toolbar sx={{ borderBottom: '1px solid', borderColor: 'divider' }}>
-          <Typography variant="h6">Ledger</Typography>
+        <Toolbar sx={{ borderBottom: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center' }}>
+          <Typography variant="h6" sx={{ lineHeight: 1.2 }}>Ledger</Typography>
+          {profile?.company_name && (
+            <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: DRAWER_WIDTH - 32, mt: 0.25, fontWeight: 500 }}>
+              {profile.company_name}
+            </Typography>
+          )}
         </Toolbar>
         <List sx={{ pt: 1 }}>
           {visibleItems.map((item) => (
@@ -59,6 +64,9 @@ export default function Layout() {
           <Toolbar sx={{ justifyContent: 'flex-end', gap: 1.5 }}>
             {profile && (
               <>
+                {profile.company_name && (
+                  <Chip label={profile.company_name} size="small" variant="filled" sx={{ bgcolor: 'action.selected', fontWeight: 500 }} />
+                )}
                 <Typography variant="body2" color="text.secondary">{profile.email}</Typography>
                 <Chip label={profile.role} size="small" variant="outlined" />
               </>

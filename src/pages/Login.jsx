@@ -7,6 +7,7 @@ export default function Login() {
   const { signIn } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [companyName, setCompanyName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -14,9 +15,13 @@ export default function Login() {
 
   const onSubmit = async (e) => {
     e.preventDefault();
+    if (!companyName.trim()) {
+      setError('Please enter your company name.');
+      return;
+    }
     setSubmitting(true);
     setError('');
-    const { error } = await signIn(email, password);
+    const { error } = await signIn(email.trim(), password, companyName.trim());
     setSubmitting(false);
     if (error) { setError(error.message); return; }
     // Send them back to whatever page they originally tried to reach
@@ -32,7 +37,8 @@ export default function Login() {
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>Sign in to your company's books.</Typography>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         <Box component="form" onSubmit={onSubmit} sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <TextField label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
+          <TextField label="Company name" value={companyName} onChange={(e) => setCompanyName(e.target.value)} required autoFocus />
+          <TextField label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
           <TextField label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
           <Button type="submit" variant="contained" disabled={submitting}>
             {submitting ? 'Signing in…' : 'Sign in'}

@@ -70,7 +70,29 @@ export function AuthProvider({ children }) {
     else { setProfile(null); setPendingOnboarding(false); }
   }, [session, loadProfile]);
 
-  const signIn = (email, password) => supabase.auth.signInWithPassword({ email, password });
+  const signIn = async (email, password, expectedCompanyName) => {
+    const result = await supabase.auth.signInWithPassword({ email, password });
+    if (result.error) return result;
+
+    if (expectedCompanyName && expectedCompanyName.trim()) {
+      try {
+        const me = await api.get('/me');
+        if (me?.company_name && me.company_name.trim().toLowerCase() !== expectedCompanyName.trim().toLowerCase()) {
+          await supabase.auth.signOut();
+          setProfile(null);
+          return {
+            error: {
+              message: `This user account does not belong to "${expectedCompanyName}".`,
+            },
+          };
+        }
+        setProfile(me);
+      } catch (err) {
+        // If profile loading fails or is pending, let loadProfile handle it
+      }
+    }
+    return result;
+  };
   const signOut = () => supabase.auth.signOut();
 
   const signUpWithCompany = async (companyName, email, password) => {
