@@ -10,7 +10,7 @@ import { api } from '../lib/api';
 import Money from '../components/Money';
 import { useAuth, hasRole } from '../context/AuthContext';
 
-const EXCLUDED_HEADINGS = ['Accounts Receivable', 'Accounts Payable'];
+const EXCLUDED_HEADINGS = ['Accounts Receivable'];
 const emptyLine = () => ({ accountId: '', debit: '', credit: '' });
 
 export default function JournalEntries() {
