@@ -39,17 +39,18 @@ export default function JournalEntries() {
   const [editing, setEditing] = useState(null);
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [memo, setMemo] = useState('');
+  const [remark, setRemark] = useState('');
   const [lines, setLines] = useState([emptyLine(), emptyLine()]);
   const [newAcctOpen, setNewAcctOpen] = useState(false);
   const [newAcctName, setNewAcctName] = useState('');
   const [newAcctHeading, setNewAcctHeading] = useState('');
 
   const openNew = () => {
-    setEditing(null); setDate(new Date().toISOString().slice(0, 10)); setMemo(''); setLines([emptyLine(), emptyLine()]);
+    setEditing(null); setDate(new Date().toISOString().slice(0, 10)); setMemo(''); setRemark(''); setLines([emptyLine(), emptyLine()]);
     setOpen(true);
   };
   const openEdit = (entry) => {
-    setEditing(entry); setDate(entry.date); setMemo(entry.memo);
+    setEditing(entry); setDate(entry.date); setMemo(entry.memo); setRemark(entry.remark || '');
     setLines(entry.lines.map((l) => ({ accountId: l.account_id, debit: l.debit > 0 ? l.debit : '', credit: l.credit > 0 ? l.credit : '' })));
     setOpen(true);
   };
@@ -78,7 +79,7 @@ export default function JournalEntries() {
   });
 
   const submit = () => {
-    const body = { date, memo, lines: lines.filter((l) => l.accountId).map((l) => ({ accountId: l.accountId, debit: +l.debit || 0, credit: +l.credit || 0 })) };
+    const body = { date, memo, remark: remark || undefined, lines: lines.filter((l) => l.accountId).map((l) => ({ accountId: l.accountId, debit: +l.debit || 0, credit: +l.credit || 0 })) };
     if (editing) updateMutation.mutate({ id: editing.id, body });
     else createMutation.mutate(body);
   };
@@ -102,7 +103,10 @@ export default function JournalEntries() {
         entries.map((entry) => (
           <Paper key={entry.id} variant="outlined" sx={{ p: 2, mb: 1.5 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-              <Typography variant="subtitle2">{entry.date} — {entry.memo}</Typography>
+              <Box>
+                <Typography variant="subtitle2">{entry.date} — {entry.memo}</Typography>
+                {entry.remark && <Typography variant="body2" color="text.secondary" sx={{ mt: 0.25 }}>{entry.remark}</Typography>}
+              </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Chip label={entry.source} size="small" variant="outlined" />
                 {entry.source === 'Manual' && canPost ? (
@@ -138,6 +142,15 @@ export default function JournalEntries() {
             <TextField label="Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} InputLabelProps={{ shrink: true }} fullWidth />
             <TextField label="Memo" value={memo} onChange={(e) => setMemo(e.target.value)} fullWidth />
           </Box>
+          <TextField
+            label="Narration / Remark"
+            value={remark}
+            onChange={(e) => setRemark(e.target.value)}
+            fullWidth
+            multiline
+            minRows={2}
+            placeholder="Optional: describe the nature of this entry"
+          />
 
           <Button size="small" variant="outlined" sx={{ alignSelf: 'flex-end' }} onClick={() => setNewAcctOpen((v) => !v)}>+ New Account</Button>
           {newAcctOpen && (

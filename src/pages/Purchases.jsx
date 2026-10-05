@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Box, Typography, Button, Table, TableHead, TableRow, TableCell, TableBody, Dialog, DialogTitle,
   DialogContent, DialogActions, TextField, Select, MenuItem, IconButton, Chip, Alert, CircularProgress,
-  InputAdornment,
+  InputAdornment, ToggleButtonGroup, ToggleButton, Divider,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
@@ -22,9 +22,27 @@ export default function Purchases() {
   const qc = useQueryClient();
 
   const [search, setSearch] = useState('');
+  const [from, setFrom] = useState('');
+  const [till, setTill] = useState('');
+  const [purchaseType, setPurchaseType] = useState('');
   const searchInputRef = useRef(null);
-  const { data: purchases, isLoading, error } = useQuery({ queryKey: ['purchases', search], queryFn: () => api.get(`/purchases${search ? `?q=${encodeURIComponent(search)}` : ''}`) });
+
+  const queryParams = new URLSearchParams();
+  if (search) queryParams.set('q', search);
+  if (from) queryParams.set('from', from);
+  if (till) queryParams.set('till', till);
+  if (purchaseType) queryParams.set('type', purchaseType);
+  const qs = queryParams.toString();
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['purchases', search, from, till, purchaseType],
+    queryFn: () => api.get(`/purchases${qs ? `?${qs}` : ''}`),
+  });
+  const purchases = data?.invoices ?? [];
+  const summary = data?.summary ?? { total: 0, cashTotal: 0, creditTotal: 0, creditOutstanding: 0 };
+
   const runSearch = () => setSearch(searchInputRef.current.value);
+  const clearFilters = () => { setSearch(''); setFrom(''); setTill(''); setPurchaseType(''); if (searchInputRef.current) searchInputRef.current.value = ''; };
 
   const { data: suppliers } = useQuery({ queryKey: ['suppliers'], queryFn: () => api.get('/suppliers') });
   const { data: products } = useQuery({ queryKey: ['products'], queryFn: () => api.get('/products') });
@@ -86,6 +104,7 @@ export default function Purchases() {
   });
 
   const canSubmit = form.supplierId && form.lines.some((l) => l.productId && (l.productId !== NEW_PRODUCT || l.newName) && +l.qty > 0) && form.accountId;
+  const hasFilters = search || from || till || purchaseType;
 
   if (isLoading) return <CircularProgress size={24} />;
   if (error) return <Alert severity="error">{error.message}</Alert>;
@@ -97,17 +116,53 @@ export default function Purchases() {
         {canEdit && <Button variant="contained" startIcon={<AddIcon />} onClick={openNew} disabled={!suppliers?.length}>New Purchase</Button>}
       </Box>
 
-      <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+      {/* Filter bar */}
+      <Box sx={{ display: 'flex', gap: 1, mb: 1, flexWrap: 'wrap', alignItems: 'center' }}>
         <TextField
-          size="small" fullWidth inputRef={searchInputRef} defaultValue={search}
-          placeholder="Search by invoice number, pragyapan patra number, supplier, or product — press Enter"
+          size="small" sx={{ flex: 2, minWidth: 200 }} inputRef={searchInputRef} defaultValue={search}
+          placeholder="Search by invoice #, pragyapan #, supplier, product — press Enter"
           onKeyDown={(e) => { if (e.key === 'Enter') runSearch(); }}
         />
         <Button variant="outlined" startIcon={<SearchIcon />} onClick={runSearch}>Search</Button>
+        <TextField size="small" type="date" label="From" value={from} onChange={(e) => setFrom(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ width: 150 }} />
+        <TextField size="small" type="date" label="Till" value={till} onChange={(e) => setTill(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ width: 150 }} />
+        <ToggleButtonGroup size="small" value={purchaseType} exclusive onChange={(_, v) => setPurchaseType(v ?? '')}>
+          <ToggleButton value="">All</ToggleButton>
+          <ToggleButton value="cash">Paid</ToggleButton>
+          <ToggleButton value="credit">Credit</ToggleButton>
+        </ToggleButtonGroup>
+        {hasFilters && <Button size="small" onClick={clearFilters}>Clear</Button>}
       </Box>
 
+      {/* Summary strip */}
+      {purchases.length > 0 && (
+        <Box sx={{ display: 'flex', gap: 3, mb: 2, p: 1.5, bgcolor: 'action.hover', borderRadius: 1, flexWrap: 'wrap' }}>
+          <Box>
+            <Typography variant="caption" color="text.secondary">Total Purchases</Typography>
+            <Typography variant="subtitle2"><Money value={summary.total} /></Typography>
+          </Box>
+          <Divider orientation="vertical" flexItem />
+          <Box>
+            <Typography variant="caption" color="text.secondary">Paid (Cash)</Typography>
+            <Typography variant="subtitle2"><Money value={summary.cashTotal} /></Typography>
+          </Box>
+          <Divider orientation="vertical" flexItem />
+          <Box>
+            <Typography variant="caption" color="text.secondary">Credit Purchases</Typography>
+            <Typography variant="subtitle2"><Money value={summary.creditTotal} /></Typography>
+          </Box>
+          <Divider orientation="vertical" flexItem />
+          <Box>
+            <Typography variant="caption" color="text.secondary">Outstanding (unpaid)</Typography>
+            <Typography variant="subtitle2" color={summary.creditOutstanding > 0 ? 'warning.main' : 'text.primary'}>
+              <Money value={summary.creditOutstanding} />
+            </Typography>
+          </Box>
+        </Box>
+      )}
+
       {purchases.length === 0 ? (
-        <Typography variant="body2" color="text.secondary">{search ? 'No purchases match that search.' : 'No purchases recorded yet.'}</Typography>
+        <Typography variant="body2" color="text.secondary">{hasFilters ? 'No purchases match the current filters.' : 'No purchases recorded yet.'}</Typography>
       ) : (
         <Table size="small">
           <TableHead>
@@ -140,6 +195,12 @@ export default function Purchases() {
                 </TableRow>
               );
             })}
+            {/* Totals footer */}
+            <TableRow sx={{ '& td': { fontWeight: 600, borderTop: '2px solid', borderColor: 'divider' } }}>
+              <TableCell colSpan={5}>Total ({purchases.length} invoice{purchases.length !== 1 ? 's' : ''})</TableCell>
+              <TableCell align="right"><Money value={summary.total} /></TableCell>
+              <TableCell colSpan={canEdit ? 2 : 1} />
+            </TableRow>
           </TableBody>
         </Table>
       )}

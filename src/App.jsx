@@ -20,6 +20,7 @@ import Sales from './pages/Sales';
 import Purchases from './pages/Purchases';
 import Expenses from './pages/Expenses';
 import Reports from './pages/Reports';
+import Salary from './pages/Salary';
 
 
 export default function App() {
@@ -47,6 +48,7 @@ export default function App() {
         <Route path="sales" element={<Sales />} />
         <Route path="purchases" element={<Purchases />} />
         <Route path="expenses" element={<Expenses />} />
+        <Route path="salary" element={<Salary />} />
         <Route path="reports" element={<Reports />} />
         <Route path="users" element={<Users />} />
         <Route path="payments" element={<Payments />} />

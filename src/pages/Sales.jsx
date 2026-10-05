@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Box, Typography, Button, Table, TableHead, TableRow, TableCell, TableBody, Dialog, DialogTitle,
   DialogContent, DialogActions, TextField, Select, MenuItem, IconButton, Chip, Alert, CircularProgress,
-  Checkbox, FormControlLabel,
+  Checkbox, FormControlLabel, ToggleButtonGroup, ToggleButton, Divider,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
@@ -21,13 +21,28 @@ export default function Sales() {
   const canEdit = hasRole(profile, 'manager');
   const qc = useQueryClient();
 
-  // Search only fires on Enter (or the search button) — not on every
-  // keystroke — so the "committed" query and the input's live text are
-  // tracked separately.
   const [search, setSearch] = useState('');
+  const [from, setFrom] = useState('');
+  const [till, setTill] = useState('');
+  const [saleType, setSaleType] = useState('');
   const searchInputRef = useRef(null);
-  const { data: sales, isLoading, error } = useQuery({ queryKey: ['sales', search], queryFn: () => api.get(`/sales${search ? `?q=${encodeURIComponent(search)}` : ''}`) });
+
+  const queryParams = new URLSearchParams();
+  if (search) queryParams.set('q', search);
+  if (from) queryParams.set('from', from);
+  if (till) queryParams.set('till', till);
+  if (saleType) queryParams.set('type', saleType);
+  const qs = queryParams.toString();
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['sales', search, from, till, saleType],
+    queryFn: () => api.get(`/sales${qs ? `?${qs}` : ''}`),
+  });
+  const sales = data?.invoices ?? [];
+  const summary = data?.summary ?? { total: 0, cashTotal: 0, creditTotal: 0, creditOutstanding: 0 };
+
   const runSearch = () => setSearch(searchInputRef.current.value);
+  const clearFilters = () => { setSearch(''); setFrom(''); setTill(''); setSaleType(''); if (searchInputRef.current) searchInputRef.current.value = ''; };
 
   const { data: customers } = useQuery({ queryKey: ['customers'], queryFn: () => api.get('/customers') });
   const { data: products } = useQuery({ queryKey: ['products'], queryFn: () => api.get('/products') });
@@ -61,9 +76,6 @@ export default function Sales() {
     setForm((f) => ({ ...f, lines: f.lines.map((l, j) => (j === i ? { ...l, productId, unit: p ? p.unit : '', price: p ? p.sell_price : l.price } : l)) }));
   };
 
-  // Switching between a product's base and alternate unit re-suggests the
-  // price for that unit (editable afterwards) — e.g. a fabric priced per
-  // Meter suggests price x factor when switched to Yards.
   const onUnitChange = (i, unit) => {
     setForm((f) => ({ ...f, lines: f.lines.map((l, j) => {
       if (j !== i) return l;
@@ -111,6 +123,7 @@ export default function Sales() {
   };
 
   const canSubmit = form.customerId && form.lines.some((l) => l.productId && +l.qty > 0 && l.unit) && form.accountId;
+  const hasFilters = search || from || till || saleType;
 
   if (isLoading) return <CircularProgress size={24} />;
   if (error) return <Alert severity="error">{error.message}</Alert>;
@@ -122,17 +135,53 @@ export default function Sales() {
         {canEdit && <Button variant="contained" startIcon={<AddIcon />} onClick={openNew} disabled={!customers?.length || !products?.length}>New Invoice</Button>}
       </Box>
 
-      <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+      {/* Filter bar */}
+      <Box sx={{ display: 'flex', gap: 1, mb: 1, flexWrap: 'wrap', alignItems: 'center' }}>
         <TextField
-          size="small" fullWidth inputRef={searchInputRef} defaultValue={search}
-          placeholder="Search by invoice number, customer, or product — press Enter"
+          size="small" sx={{ flex: 2, minWidth: 200 }} inputRef={searchInputRef} defaultValue={search}
+          placeholder="Search by invoice #, customer, product — press Enter"
           onKeyDown={(e) => { if (e.key === 'Enter') runSearch(); }}
         />
         <Button variant="outlined" startIcon={<SearchIcon />} onClick={runSearch}>Search</Button>
+        <TextField size="small" type="date" label="From" value={from} onChange={(e) => setFrom(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ width: 150 }} />
+        <TextField size="small" type="date" label="Till" value={till} onChange={(e) => setTill(e.target.value)} InputLabelProps={{ shrink: true }} sx={{ width: 150 }} />
+        <ToggleButtonGroup size="small" value={saleType} exclusive onChange={(_, v) => setSaleType(v ?? '')}>
+          <ToggleButton value="">All</ToggleButton>
+          <ToggleButton value="cash">Cash</ToggleButton>
+          <ToggleButton value="credit">Credit</ToggleButton>
+        </ToggleButtonGroup>
+        {hasFilters && <Button size="small" onClick={clearFilters}>Clear</Button>}
       </Box>
 
+      {/* Summary strip — only shown when there are results */}
+      {sales.length > 0 && (
+        <Box sx={{ display: 'flex', gap: 3, mb: 2, p: 1.5, bgcolor: 'action.hover', borderRadius: 1, flexWrap: 'wrap' }}>
+          <Box>
+            <Typography variant="caption" color="text.secondary">Total Sales</Typography>
+            <Typography variant="subtitle2"><Money value={summary.total} /></Typography>
+          </Box>
+          <Divider orientation="vertical" flexItem />
+          <Box>
+            <Typography variant="caption" color="text.secondary">Cash Sales</Typography>
+            <Typography variant="subtitle2"><Money value={summary.cashTotal} /></Typography>
+          </Box>
+          <Divider orientation="vertical" flexItem />
+          <Box>
+            <Typography variant="caption" color="text.secondary">Credit Sales</Typography>
+            <Typography variant="subtitle2"><Money value={summary.creditTotal} /></Typography>
+          </Box>
+          <Divider orientation="vertical" flexItem />
+          <Box>
+            <Typography variant="caption" color="text.secondary">Outstanding (unpaid)</Typography>
+            <Typography variant="subtitle2" color={summary.creditOutstanding > 0 ? 'warning.main' : 'text.primary'}>
+              <Money value={summary.creditOutstanding} />
+            </Typography>
+          </Box>
+        </Box>
+      )}
+
       {sales.length === 0 ? (
-        <Typography variant="body2" color="text.secondary">{search ? 'No sales match that search.' : 'No sales recorded yet.'}</Typography>
+        <Typography variant="body2" color="text.secondary">{hasFilters ? 'No sales match the current filters.' : 'No sales recorded yet.'}</Typography>
       ) : (
         <Table size="small">
           <TableHead>
@@ -167,6 +216,12 @@ export default function Sales() {
                 </TableRow>
               );
             })}
+            {/* Totals footer */}
+            <TableRow sx={{ '& td': { fontWeight: 600, borderTop: '2px solid', borderColor: 'divider' } }}>
+              <TableCell colSpan={4}>Total ({sales.length} invoice{sales.length !== 1 ? 's' : ''})</TableCell>
+              <TableCell align="right"><Money value={summary.total} /></TableCell>
+              <TableCell colSpan={2} />
+            </TableRow>
           </TableBody>
         </Table>
       )}
