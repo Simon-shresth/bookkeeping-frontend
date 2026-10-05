@@ -13,7 +13,11 @@ const queryClient = new QueryClient({
     // mutation) or on a fresh page load — not just from switching tabs and
     // back, which is react-query's default behavior and was the cause of
     // the "page refreshes every time I come back to it" complaint.
-    queries: { retry: 1, staleTime: 10_000, refetchOnWindowFocus: false },
+    queries: {
+      refetchOnWindowFocus: false, // Prevents refreshing data when changing browser tabs
+      refetchOnReconnect: false,   // Prevents auto-refetching on reconnect
+      staleTime: 1000 * 60 * 10,   // Considers cached data fresh for 10 minutes
+     },
   },
 });
 
