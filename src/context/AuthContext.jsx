@@ -6,44 +6,58 @@ const AuthContext = createContext(null);
 const PENDING_COMPANY_KEY = 'pendingCompanyName';
 
 export function AuthProvider({ children }) {
-  const [session, setSession] = useState(undefined); // undefined = still loading
-  const [profile, setProfile] = useState(null);       // { id, company_id, email, role }
+  const [session, setSession] = useState(undefined);
+  const [profile, setProfile] = useState(null);
   const [profileError, setProfileError] = useState(null);
   const [profileLoading, setProfileLoading] = useState(false);
+  // Surfaced to ProtectedRoute so it can show a "finish setup" form
+  const [pendingOnboarding, setPendingOnboarding] = useState(false);
 
   const loadProfile = useCallback(async () => {
     setProfileLoading(true);
     try {
       setProfileError(null);
       const me = await api.get('/me');
+      setPendingOnboarding(false);
       setProfile(me);
     } catch (err) {
-      // No matching `users` row yet. If this session came from the sign-up
-      // flow, a company name is waiting in localStorage — finish onboarding
-      // automatically (covers both "confirmation disabled" sign-ups, which
-      // land here immediately, and "confirm by email" ones, which land here
-      // after the person logs in post-confirmation).
       const pendingCompany = localStorage.getItem(PENDING_COMPANY_KEY);
       if (pendingCompany) {
         try {
           await api.post('/onboarding/company', { companyName: pendingCompany });
           localStorage.removeItem(PENDING_COMPANY_KEY);
           const me = await api.get('/me');
+          setPendingOnboarding(false);
           setProfile(me);
           return;
         } catch (onboardErr) {
-          localStorage.removeItem(PENDING_COMPANY_KEY);
+          // Onboarding failed — but keep pendingCompanyName so the user can
+          // retry from ProtectedRoute's "complete setup" screen.
+          setPendingOnboarding(true);
           setProfile(null);
           setProfileError(onboardErr.message);
           return;
         }
       }
+      // No pending company — this user genuinely has no company row yet.
+      // Show the "complete setup" form so they can enter a company name.
+      setPendingOnboarding(true);
       setProfile(null);
       setProfileError(err.message);
     } finally {
       setProfileLoading(false);
     }
   }, []);
+
+  const completeOnboarding = useCallback(async (companyName) => {
+    try {
+      await api.post('/onboarding/company', { companyName });
+      localStorage.removeItem(PENDING_COMPANY_KEY);
+      await loadProfile();
+    } catch (err) {
+      throw err;
+    }
+  }, [loadProfile]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
@@ -53,14 +67,12 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     if (session) loadProfile();
-    else setProfile(null);
+    else { setProfile(null); setPendingOnboarding(false); }
   }, [session, loadProfile]);
 
   const signIn = (email, password) => supabase.auth.signInWithPassword({ email, password });
   const signOut = () => supabase.auth.signOut();
 
-  // Stashes the chosen company name, then creates the Supabase auth account.
-  // Onboarding itself happens in loadProfile() above once a session exists.
   const signUpWithCompany = async (companyName, email, password) => {
     localStorage.setItem(PENDING_COMPANY_KEY, companyName);
     const result = await supabase.auth.signUp({ email, password });
@@ -73,11 +85,13 @@ export function AuthProvider({ children }) {
     profile,
     profileError,
     profileLoading,
+    pendingOnboarding,
     loading: session === undefined,
     signIn,
     signOut,
     signUpWithCompany,
     reloadProfile: loadProfile,
+    completeOnboarding,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
