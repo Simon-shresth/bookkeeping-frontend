@@ -6,6 +6,8 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { api } from '../lib/api';
 import Money from '../components/Money';
 import { useAuth, hasRole } from '../context/AuthContext';
@@ -18,7 +20,14 @@ export default function JournalEntries() {
   const canPost = hasRole(profile, 'accountant');
   const qc = useQueryClient();
 
-  const { data: entries, isLoading, error } = useQuery({ queryKey: ['journal'], queryFn: () => api.get('/journal') });
+  const [page, setPage] = useState(1);
+  const { data: pageData, isLoading, error } = useQuery({
+    queryKey: ['journal', page],
+    queryFn: () => api.get(`/journal?page=${page}&limit=50`),
+  });
+  const entries = pageData?.entries || [];
+  const totalCount = pageData?.total || 0;
+  const totalPages = pageData?.pages || 1;
   const { data: accounts } = useQuery({ queryKey: ['account-options'], queryFn: () => api.get('/accounts/options') });
 
   // ── Filter state ──────────────────────────────────────────────────────────
@@ -137,7 +146,9 @@ export default function JournalEntries() {
           <Button size="small" onClick={() => { setFilterAccountId(''); setFilterFrom(''); setFilterTill(''); }}>Clear</Button>
         )}
         <Typography variant="body2" color="text.secondary" sx={{ ml: 'auto' }}>
-          {filteredEntries.length} {filteredEntries.length === 1 ? 'entry' : 'entries'}
+          {filterAccountId || filterFrom || filterTill
+            ? `${filteredEntries.length} of ${totalCount} entries`
+            : `${totalCount} entries`}
         </Typography>
       </Box>
 
@@ -178,6 +189,15 @@ export default function JournalEntries() {
             </Table>
           </Paper>
         ))
+      )}
+
+      {/* ── Pagination ───────────────────────────────────────────────────── */}
+      {totalPages > 1 && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2 }}>
+          <IconButton size="small" disabled={page <= 1} onClick={() => setPage(p => p - 1)}><ChevronLeftIcon /></IconButton>
+          <Typography variant="body2">Page {page} of {totalPages}</Typography>
+          <IconButton size="small" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}><ChevronRightIcon /></IconButton>
+        </Box>
       )}
 
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>

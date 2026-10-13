@@ -6,7 +6,7 @@ import {
   PeopleAltOutlined, LocalShippingOutlined, Inventory2Outlined, TrendingUpOutlined,
   ShoppingCartOutlined, AttachMoneyOutlined, BadgeOutlined, PaymentsOutlined,
   CheckCircleOutline, AssessmentOutlined, AdminPanelSettingsOutlined, HistoryOutlined,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, PlaylistAddOutlined,
 } from '@mui/icons-material';
 import { useAuth, hasRole } from '../context/AuthContext';
 
@@ -18,6 +18,7 @@ const ICONS = {
   '/chart-of-accounts': AccountBalanceOutlined,
   '/journal': MenuBookOutlined,
   '/ledger': ReceiptLongOutlined,
+  '/opening-balances': PlaylistAddOutlined,
   '/customers': PeopleAltOutlined,
   '/suppliers': LocalShippingOutlined,
   '/products': Inventory2Outlined,
@@ -37,6 +38,7 @@ const NAV_ITEMS = [
   { label: 'Chart of Accounts', path: '/chart-of-accounts' },
   { label: 'Journal Entries', path: '/journal' },
   { label: 'General Ledger', path: '/ledger' },
+  { label: 'Opening Balances', path: '/opening-balances', minRole: 'accountant' },
   { label: 'Customers', path: '/customers' },
   { label: 'Suppliers', path: '/suppliers' },
   { label: 'Products', path: '/products' },

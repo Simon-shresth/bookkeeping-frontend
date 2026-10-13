@@ -21,6 +21,7 @@ import Purchases from './pages/Purchases';
 import Expenses from './pages/Expenses';
 import Reports from './pages/Reports';
 import Salary from './pages/Salary';
+import OpeningBalances from './pages/OpeningBalances';
 
 
 export default function App() {
@@ -37,11 +38,12 @@ export default function App() {
             <Layout />
           </ProtectedRoute>
         }
-      > 
+      >
         <Route index element={<Dashboard />} />
         <Route path="chart-of-accounts" element={<ChartOfAccounts />} />
         <Route path="journal" element={<JournalEntries />} />
         <Route path="ledger" element={<GeneralLedger />} />
+        <Route path="opening-balances" element={<OpeningBalances />} />
         <Route path="customers" element={<Customers />} />
         <Route path="suppliers" element={<Suppliers />} />
         <Route path="products" element={<Products />} />
