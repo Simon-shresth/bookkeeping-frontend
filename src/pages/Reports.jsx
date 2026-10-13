@@ -7,9 +7,12 @@ const BUCKETS = ['Current', '1-30', '31-60', '61+'];
 
 // Payments received/made are applied to the oldest credit invoices first, so
 // what's shown here is what is genuinely still outstanding. Age is measured
-// from the invoice date (there are no due dates yet).
+// from the invoice/journal date (there are no due dates yet).
+// Journal-derived rows (kind='journal') show the entry memo in the Invoice # column.
 function AgingSection({ title, emptyText, partyLabel, partyKey, data, extraCol }) {
   const { rows, buckets } = data;
+  // Show Type column only when there are journal rows mixed in
+  const hasJournalRows = rows.some((r) => r.kind === 'journal');
   return (
     <Box sx={{ mb: 4 }}>
       <Typography variant="h6" sx={{ mb: 1 }}>{title}</Typography>
@@ -25,20 +28,38 @@ function AgingSection({ title, emptyText, partyLabel, partyKey, data, extraCol }
               </Box>
             ))}
           </Box>
-          <Table size="small" sx={{ maxWidth: 820 }}>
+          <Table size="small" sx={{ maxWidth: hasJournalRows ? 900 : 820 }}>
             <TableHead>
               <TableRow>
-                <TableCell>Date</TableCell><TableCell>{partyLabel}</TableCell><TableCell>Invoice #</TableCell>
+                <TableCell>Date</TableCell>
+                <TableCell>{partyLabel}</TableCell>
+                <TableCell>Invoice # / Description</TableCell>
                 {extraCol && <TableCell>{extraCol.label}</TableCell>}
-                <TableCell align="right">Original</TableCell><TableCell align="right">Outstanding</TableCell>
+                {hasJournalRows && <TableCell>Type</TableCell>}
+                <TableCell align="right">Original</TableCell>
+                <TableCell align="right">Outstanding</TableCell>
                 <TableCell align="right">Age (days)</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {rows.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell>{row.date}</TableCell><TableCell>{row[partyKey]}</TableCell><TableCell>{row.invoice_number}</TableCell>
-                  {extraCol && <TableCell>{row[extraCol.key]}</TableCell>}
+              {rows.map((row, idx) => (
+                // row.id is unique within its kind but journal and invoice rows may share ids;
+                // use index as a tiebreaker to avoid React key warnings.
+                <TableRow key={`${row.kind}-${row.id}-${idx}`}>
+                  <TableCell>{row.date}</TableCell>
+                  <TableCell>{row[partyKey]}</TableCell>
+                  {/* Journal rows: show the memo as the description; invoice rows: show invoice number */}
+                  <TableCell sx={row.kind === 'journal' ? { fontStyle: 'italic', color: 'text.secondary' } : {}}>
+                    {row.kind === 'journal' ? row.memo : row.invoice_number}
+                  </TableCell>
+                  {extraCol && <TableCell>{row.kind === 'invoice' ? row[extraCol.key] : null}</TableCell>}
+                  {hasJournalRows && (
+                    <TableCell>
+                      <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>
+                        {row.kind === 'journal' ? 'Journal' : 'Invoice'}
+                      </span>
+                    </TableCell>
+                  )}
                   <TableCell align="right"><Money value={row.original} /></TableCell>
                   <TableCell align="right"><Money value={row.outstanding} /></TableCell>
                   <TableCell align="right">{row.age_days}</TableCell>
