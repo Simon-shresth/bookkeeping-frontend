@@ -21,12 +21,31 @@ export default function JournalEntries() {
   const { data: entries, isLoading, error } = useQuery({ queryKey: ['journal'], queryFn: () => api.get('/journal') });
   const { data: accounts } = useQuery({ queryKey: ['account-options'], queryFn: () => api.get('/accounts/options') });
 
+  // ── Filter state ──────────────────────────────────────────────────────────
+  const [filterAccountId, setFilterAccountId] = useState('');
+  const [filterFrom, setFilterFrom] = useState('');
+  const [filterTill, setFilterTill] = useState('');
+
   const grouped = useMemo(() => {
     if (!accounts) return {};
     const g = {};
     for (const a of accounts) (g[`${a.category}: ${a.heading}`] ||= []).push(a);
     return g;
   }, [accounts]);
+
+  // Apply filters client-side against the full entries list
+  const filteredEntries = useMemo(() => {
+    if (!entries) return [];
+    return entries.filter((entry) => {
+      if (filterFrom && entry.date < filterFrom) return false;
+      if (filterTill && entry.date > filterTill) return false;
+      if (filterAccountId) {
+        const hasAccount = (entry.lines || []).some((l) => l.account_id === filterAccountId);
+        if (!hasAccount) return false;
+      }
+      return true;
+    });
+  }, [entries, filterAccountId, filterFrom, filterTill]);
 
   const creatableHeadings = useMemo(() => {
     if (!accounts) return [];
@@ -97,10 +116,37 @@ export default function JournalEntries() {
         {canPost && <Button variant="contained" startIcon={<AddIcon />} onClick={openNew}>New Entry</Button>}
       </Box>
 
+      {/* ── Filters ─────────────────────────────────────────────────────── */}
+      <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2, alignItems: 'center' }}>
+        <Select
+          size="small"
+          value={filterAccountId}
+          onChange={(e) => setFilterAccountId(e.target.value)}
+          displayEmpty
+          sx={{ minWidth: 220 }}
+        >
+          <MenuItem value="">All accounts</MenuItem>
+          {Object.entries(grouped).map(([heading, accs]) => [
+            <ListSubheader key={heading}>{heading}</ListSubheader>,
+            ...accs.map((a) => <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>),
+          ])}
+        </Select>
+        <TextField size="small" type="date" label="From" value={filterFrom} onChange={(e) => setFilterFrom(e.target.value)} InputLabelProps={{ shrink: true }} />
+        <TextField size="small" type="date" label="Till" value={filterTill} onChange={(e) => setFilterTill(e.target.value)} InputLabelProps={{ shrink: true }} />
+        {(filterAccountId || filterFrom || filterTill) && (
+          <Button size="small" onClick={() => { setFilterAccountId(''); setFilterFrom(''); setFilterTill(''); }}>Clear</Button>
+        )}
+        <Typography variant="body2" color="text.secondary" sx={{ ml: 'auto' }}>
+          {filteredEntries.length} {filteredEntries.length === 1 ? 'entry' : 'entries'}
+        </Typography>
+      </Box>
+
       {entries.length === 0 ? (
         <Typography variant="body2" color="text.secondary">No journal entries yet.</Typography>
+      ) : filteredEntries.length === 0 ? (
+        <Typography variant="body2" color="text.secondary">No entries match the current filter.</Typography>
       ) : (
-        entries.map((entry) => (
+        filteredEntries.map((entry) => (
           <Paper key={entry.id} variant="outlined" sx={{ p: 2, mb: 1.5 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
               <Box>

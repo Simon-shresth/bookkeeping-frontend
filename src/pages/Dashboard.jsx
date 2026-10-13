@@ -3,12 +3,22 @@ import { Box, Typography, Paper, Grid, Table, TableHead, TableRow, TableCell, Ta
 import { api } from '../lib/api';
 import Money from '../components/Money';
 
-function StatCard({ label, value, tone }) {
+function pct(numerator, denominator) {
+  if (!denominator || denominator === 0) return null;
+  return ((numerator / denominator) * 100).toFixed(1);
+}
+
+function StatCard({ label, value, tone, subtitle }) {
   const color = tone === 'good' ? 'primary.main' : tone === 'bad' ? 'error.main' : undefined;
   return (
     <Paper variant="outlined" sx={{ p: 2, minWidth: 160 }}>
       <Typography variant="caption" color="text.secondary">{label}</Typography>
       <Typography variant="h6" sx={{ mt: 0.5 }}><Money value={value} color={color} /></Typography>
+      {subtitle && (
+        <Typography variant="caption" color={tone === 'bad' ? 'error.main' : 'text.secondary'}>
+          {subtitle}
+        </Typography>
+      )}
     </Paper>
   );
 }
@@ -21,15 +31,21 @@ export default function Dashboard() {
 
   const { totals, lowStock, recentTransactions } = data;
 
+  const grossProfit = totals.revenue - totals.cogs;
+  const grossMarginPct = pct(grossProfit, totals.revenue);
+  const expensePct = pct(totals.expenseTotal, totals.revenue);
+  const netProfitPct = pct(totals.profit, totals.revenue);
+
   return (
     <Box>
       <Typography variant="h4" sx={{ mb: 3 }}>Dashboard</Typography>
 
       <Grid container spacing={2} sx={{ mb: 4 }}>
         <Grid item><StatCard label="Revenue" value={totals.revenue} tone="good" /></Grid>
-        <Grid item><StatCard label="Cost of Goods Sold" value={totals.cogs} tone="bad" /></Grid>
-        <Grid item><StatCard label="Expenses" value={totals.expenseTotal} tone="bad" /></Grid>
-        <Grid item><StatCard label="Net Profit" value={totals.profit} tone={totals.profit >= 0 ? 'good' : 'bad'} /></Grid>
+        <Grid item><StatCard label="Cost of Goods Sold" value={totals.cogs} tone="bad" subtitle={pct(totals.cogs, totals.revenue) != null ? `${pct(totals.cogs, totals.revenue)}% of revenue` : null} /></Grid>
+        <Grid item><StatCard label="Gross Profit" value={grossProfit} tone={grossProfit >= 0 ? 'good' : 'bad'} subtitle={grossMarginPct != null ? `${grossMarginPct}% margin` : null} /></Grid>
+        <Grid item><StatCard label="Expenses" value={totals.expenseTotal} tone="bad" subtitle={expensePct != null ? `${expensePct}% of revenue` : null} /></Grid>
+        <Grid item><StatCard label="Net Profit" value={totals.profit} tone={totals.profit >= 0 ? 'good' : 'bad'} subtitle={netProfitPct != null ? `${netProfitPct}% margin` : null} /></Grid>
         <Grid item><StatCard label="Accounts Receivable" value={totals.ar} /></Grid>
         <Grid item><StatCard label="Accounts Payable" value={totals.ap} /></Grid>
       </Grid>

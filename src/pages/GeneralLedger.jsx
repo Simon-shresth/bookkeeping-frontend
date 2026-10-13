@@ -1,22 +1,17 @@
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Box, Typography, Select, MenuItem, ListSubheader, Table, TableHead, TableRow, TableCell, TableBody, CircularProgress, Alert, Chip, TextField, Button } from '@mui/material';
+import { Box, Typography, Autocomplete, Table, TableHead, TableRow, TableCell, TableBody, CircularProgress, Alert, Chip, TextField, Button } from '@mui/material';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdfOutlined';
 import { api, saveBlob } from '../lib/api';
 import Money from '../components/Money';
 
 export default function GeneralLedger() {
   const { data: accounts, isLoading: loadingAccounts } = useQuery({ queryKey: ['account-options'], queryFn: () => api.get('/accounts/options') });
-  const [accountId, setAccountId] = useState('');
+  const [selectedAccount, setSelectedAccount] = useState(null);
   const [from, setFrom] = useState('');
   const [till, setTill] = useState('');
 
-  const grouped = useMemo(() => {
-    if (!accounts) return {};
-    const byHeading = {};
-    for (const a of accounts) (byHeading[`${a.category}: ${a.heading}`] ||= []).push(a);
-    return byHeading;
-  }, [accounts]);
+  const accountId = selectedAccount?.id || '';
 
   const query = new URLSearchParams();
   if (from) query.set('from', from);
@@ -43,19 +38,19 @@ export default function GeneralLedger() {
       <Typography variant="h4" sx={{ mb: 2 }}>General Ledger</Typography>
 
       <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap', mb: 3 }}>
-        <Select
-          value={accountId}
-          onChange={(e) => setAccountId(e.target.value)}
-          displayEmpty
+        <Autocomplete
           size="small"
-          sx={{ minWidth: 280 }}
-        >
-          <MenuItem value="" disabled>Select an account…</MenuItem>
-          {Object.entries(grouped).map(([heading, accs]) => [
-            <ListSubheader key={heading}>{heading}</ListSubheader>,
-            ...accs.map((a) => <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>),
-          ])}
-        </Select>
+          options={accounts || []}
+          groupBy={(option) => `${option.category}: ${option.heading}`}
+          getOptionLabel={(option) => option.name || ''}
+          isOptionEqualToValue={(option, value) => option.id === value.id}
+          value={selectedAccount}
+          onChange={(_, newValue) => setSelectedAccount(newValue)}
+          renderInput={(params) => (
+            <TextField {...params} placeholder="Search or select account…" label="Account" />
+          )}
+          sx={{ minWidth: 320 }}
+        />
         <TextField size="small" type="date" label="From" value={from} onChange={(e) => setFrom(e.target.value)} InputLabelProps={{ shrink: true }} />
         <TextField size="small" type="date" label="Till" value={till} onChange={(e) => setTill(e.target.value)} InputLabelProps={{ shrink: true }} />
         {accountId && (

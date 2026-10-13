@@ -6,7 +6,8 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
-import { api } from '../lib/api';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdfOutlined';
+import { api, saveBlob } from '../lib/api';
 import Money from '../components/Money';
 import { useAuth, hasRole } from '../context/AuthContext';
 
@@ -34,6 +35,13 @@ export default function Customers() {
     onError: (err) => alert(err.message),
   });
 
+  const downloadPdf = async () => {
+    try {
+      const blob = await api.blob('/customers/statement/pdf');
+      saveBlob(blob, 'customers-outstanding.pdf');
+    } catch (err) { alert(err.message); }
+  };
+
   if (isLoading) return <CircularProgress size={24} />;
   if (error) return <Alert severity="error">{error.message}</Alert>;
 
@@ -41,7 +49,12 @@ export default function Customers() {
     <Box>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h4">Customers</Typography>
-        {canEdit && <Button variant="contained" startIcon={<AddIcon />} onClick={openNew}>Add</Button>}
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button variant="outlined" startIcon={<PictureAsPdfIcon />} onClick={downloadPdf} disabled={!data?.length}>
+            Export PDF
+          </Button>
+          {canEdit && <Button variant="contained" startIcon={<AddIcon />} onClick={openNew}>Add</Button>}
+        </Box>
       </Box>
 
       {data.length === 0 ? (
