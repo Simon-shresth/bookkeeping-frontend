@@ -116,8 +116,8 @@ export default function Reports() {
           <TableRow><TableCell><strong>Total Liabilities</strong></TableCell><TableCell align="right"><Money value={bs.data.totalLiabilities} bold /></TableCell></TableRow>
 
           <TableRow><TableCell colSpan={2} sx={{ pt: 2 }}><strong>Equity</strong></TableCell></TableRow>
-          {bs.data.equityHeadings.map((a) => (
-            <TableRow key={a.heading}><TableCell sx={{ pl: 3 }}>{a.heading}</TableCell><TableCell align="right"><Money value={a.balance} /></TableCell></TableRow>
+          {(bs.data.equityHeadings || bs.data.equityAccounts || []).map((a) => (
+            <TableRow key={a.heading || a.name}><TableCell sx={{ pl: 3 }}>{a.heading || a.name}</TableCell><TableCell align="right"><Money value={a.balance} /></TableCell></TableRow>
           ))}
           <TableRow><TableCell sx={{ pl: 3 }}>Current Period Earnings</TableCell><TableCell align="right"><Money value={bs.data.currentEarnings} /></TableCell></TableRow>
           <TableRow><TableCell><strong>Total Equity</strong></TableCell><TableCell align="right"><Money value={bs.data.totalEquity} bold /></TableCell></TableRow>
