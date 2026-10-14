@@ -10,8 +10,7 @@ const BUCKETS = ['Current', '1-30', '31-60', '61+'];
 // from the invoice/journal date (there are no due dates yet).
 // Journal-derived rows (kind='journal') show the entry memo in the Invoice # column.
 function AgingSection({ title, emptyText, partyLabel, partyKey, data, extraCol }) {
-  const rows = data?.rows || [];
-  const buckets = data?.buckets || { Current: 0, '1-30': 0, '31-60': 0, '61+': 0 };
+  const { rows, buckets } = data;
   // Show Type column only when there are journal rows mixed in
   const hasJournalRows = rows.some((r) => r.kind === 'journal');
   return (
@@ -83,10 +82,6 @@ export default function Reports() {
   if (pl.isLoading || bs.isLoading || ar.isLoading || ap.isLoading) return <CircularProgress size={24} />;
   const err = pl.error || bs.error || ar.error || ap.error;
   if (err) return <Alert severity="error">{err.message}</Alert>;
-  if (!pl.data || !bs.data || !ar.data || !ap.data) return <Alert severity="warning">Reports data is not available yet.</Alert>;
-
-  const plData = pl.data;
-  const bsData = bs.data;
 
   return (
     <Box>
@@ -95,12 +90,12 @@ export default function Reports() {
       <Typography variant="h6" sx={{ mb: 1 }}>Profit &amp; Loss</Typography>
       <Table size="small" sx={{ mb: 4, maxWidth: 480 }}>
         <TableBody>
-          <TableRow><TableCell>Sales Revenue</TableCell><TableCell align="right"><Money value={plData.revenue} /></TableCell></TableRow>
-          <TableRow><TableCell>Cost of Goods Sold</TableCell><TableCell align="right"><Money value={-plData.costOfGoodsSold} color="error.main" /></TableCell></TableRow>
-          <TableRow><TableCell>Operating Expenses</TableCell><TableCell align="right"><Money value={-plData.operatingExpenses} color="error.main" /></TableCell></TableRow>
+          <TableRow><TableCell>Sales Revenue</TableCell><TableCell align="right"><Money value={pl.data.revenue} /></TableCell></TableRow>
+          <TableRow><TableCell>Cost of Goods Sold</TableCell><TableCell align="right"><Money value={-pl.data.costOfGoodsSold} color="error.main" /></TableCell></TableRow>
+          <TableRow><TableCell>Operating Expenses</TableCell><TableCell align="right"><Money value={-pl.data.operatingExpenses} color="error.main" /></TableCell></TableRow>
           <TableRow>
             <TableCell><strong>Net Profit</strong></TableCell>
-            <TableCell align="right"><Money value={plData.netProfit} bold color={plData.netProfit >= 0 ? 'primary.main' : 'error.main'} /></TableCell>
+            <TableCell align="right"><Money value={pl.data.netProfit} bold color={pl.data.netProfit >= 0 ? 'primary.main' : 'error.main'} /></TableCell>
           </TableRow>
         </TableBody>
       </Table>
@@ -109,29 +104,29 @@ export default function Reports() {
       <Table size="small" sx={{ mb: 1, maxWidth: 480 }}>
         <TableBody>
           <TableRow><TableCell colSpan={2}><strong>Assets</strong></TableCell></TableRow>
-          {(bsData.assets || []).map((a) => (
-            <TableRow key={a.heading || a.name}><TableCell sx={{ pl: 3 }}>{a.heading || a.name}</TableCell><TableCell align="right"><Money value={a.balance} /></TableCell></TableRow>
+          {bs.data.assets.map((a) => (
+            <TableRow key={a.heading}><TableCell sx={{ pl: 3 }}>{a.heading}</TableCell><TableCell align="right"><Money value={a.balance} /></TableCell></TableRow>
           ))}
-          <TableRow><TableCell><strong>Total Assets</strong></TableCell><TableCell align="right"><Money value={bsData.totalAssets} bold /></TableCell></TableRow>
+          <TableRow><TableCell><strong>Total Assets</strong></TableCell><TableCell align="right"><Money value={bs.data.totalAssets} bold /></TableCell></TableRow>
 
           <TableRow><TableCell colSpan={2} sx={{ pt: 2 }}><strong>Liabilities</strong></TableCell></TableRow>
-          {(bsData.liabilities || []).map((a) => (
-            <TableRow key={a.heading || a.name}><TableCell sx={{ pl: 3 }}>{a.heading || a.name}</TableCell><TableCell align="right"><Money value={a.balance} /></TableCell></TableRow>
+          {bs.data.liabilities.map((a) => (
+            <TableRow key={a.heading}><TableCell sx={{ pl: 3 }}>{a.heading}</TableCell><TableCell align="right"><Money value={a.balance} /></TableCell></TableRow>
           ))}
-          <TableRow><TableCell><strong>Total Liabilities</strong></TableCell><TableCell align="right"><Money value={bsData.totalLiabilities} bold /></TableCell></TableRow>
+          <TableRow><TableCell><strong>Total Liabilities</strong></TableCell><TableCell align="right"><Money value={bs.data.totalLiabilities} bold /></TableCell></TableRow>
 
           <TableRow><TableCell colSpan={2} sx={{ pt: 2 }}><strong>Equity</strong></TableCell></TableRow>
-          {(bsData.equityHeadings || bsData.equityAccounts || []).map((a) => (
-            <TableRow key={a.heading || a.name}><TableCell sx={{ pl: 3 }}>{a.heading || a.name}</TableCell><TableCell align="right"><Money value={a.balance} /></TableCell></TableRow>
+          {bs.data.equityHeadings.map((a) => (
+            <TableRow key={a.heading}><TableCell sx={{ pl: 3 }}>{a.heading}</TableCell><TableCell align="right"><Money value={a.balance} /></TableCell></TableRow>
           ))}
-          <TableRow><TableCell sx={{ pl: 3 }}>Current Period Earnings</TableCell><TableCell align="right"><Money value={bsData.currentEarnings} /></TableCell></TableRow>
-          <TableRow><TableCell><strong>Total Equity</strong></TableCell><TableCell align="right"><Money value={bsData.totalEquity} bold /></TableCell></TableRow>
+          <TableRow><TableCell sx={{ pl: 3 }}>Current Period Earnings</TableCell><TableCell align="right"><Money value={bs.data.currentEarnings} /></TableCell></TableRow>
+          <TableRow><TableCell><strong>Total Equity</strong></TableCell><TableCell align="right"><Money value={bs.data.totalEquity} bold /></TableCell></TableRow>
 
-          <TableRow><TableCell sx={{ pt: 2 }}><strong>Total Liabilities + Equity</strong></TableCell><TableCell align="right" sx={{ pt: 2 }}><Money value={bsData.totalLiabilities + bsData.totalEquity} bold /></TableCell></TableRow>
+          <TableRow><TableCell sx={{ pt: 2 }}><strong>Total Liabilities + Equity</strong></TableCell><TableCell align="right" sx={{ pt: 2 }}><Money value={bs.data.totalLiabilities + bs.data.totalEquity} bold /></TableCell></TableRow>
         </TableBody>
       </Table>
-      <Typography variant="body2" sx={{ mb: 4, color: bsData.balanced ? 'primary.main' : 'error.main' }}>
-        {bsData.balanced ? '✓ Balance sheet is balanced.' : '⚠ Out of balance — check journal entries.'}
+      <Typography variant="body2" sx={{ mb: 4, color: bs.data.balanced ? 'primary.main' : 'error.main' }}>
+        {bs.data.balanced ? '✓ Balance sheet is balanced.' : '⚠ Out of balance — check journal entries.'}
       </Typography>
 
       <AgingSection
