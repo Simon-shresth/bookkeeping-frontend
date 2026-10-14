@@ -10,7 +10,8 @@ const BUCKETS = ['Current', '1-30', '31-60', '61+'];
 // from the invoice/journal date (there are no due dates yet).
 // Journal-derived rows (kind='journal') show the entry memo in the Invoice # column.
 function AgingSection({ title, emptyText, partyLabel, partyKey, data, extraCol }) {
-  const { rows, buckets } = data;
+  const rows = data?.rows || [];
+  const buckets = data?.buckets || { Current: 0, '1-30': 0, '31-60': 0, '61+': 0 };
   // Show Type column only when there are journal rows mixed in
   const hasJournalRows = rows.some((r) => r.kind === 'journal');
   return (
@@ -104,14 +105,14 @@ export default function Reports() {
       <Table size="small" sx={{ mb: 1, maxWidth: 480 }}>
         <TableBody>
           <TableRow><TableCell colSpan={2}><strong>Assets</strong></TableCell></TableRow>
-          {bs.data.assets.map((a) => (
-            <TableRow key={a.heading}><TableCell sx={{ pl: 3 }}>{a.heading}</TableCell><TableCell align="right"><Money value={a.balance} /></TableCell></TableRow>
+          {(bs.data.assets || []).map((a) => (
+            <TableRow key={a.heading || a.name}><TableCell sx={{ pl: 3 }}>{a.heading || a.name}</TableCell><TableCell align="right"><Money value={a.balance} /></TableCell></TableRow>
           ))}
           <TableRow><TableCell><strong>Total Assets</strong></TableCell><TableCell align="right"><Money value={bs.data.totalAssets} bold /></TableCell></TableRow>
 
           <TableRow><TableCell colSpan={2} sx={{ pt: 2 }}><strong>Liabilities</strong></TableCell></TableRow>
-          {bs.data.liabilities.map((a) => (
-            <TableRow key={a.heading}><TableCell sx={{ pl: 3 }}>{a.heading}</TableCell><TableCell align="right"><Money value={a.balance} /></TableCell></TableRow>
+          {(bs.data.liabilities || []).map((a) => (
+            <TableRow key={a.heading || a.name}><TableCell sx={{ pl: 3 }}>{a.heading || a.name}</TableCell><TableCell align="right"><Money value={a.balance} /></TableCell></TableRow>
           ))}
           <TableRow><TableCell><strong>Total Liabilities</strong></TableCell><TableCell align="right"><Money value={bs.data.totalLiabilities} bold /></TableCell></TableRow>
 
