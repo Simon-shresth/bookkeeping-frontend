@@ -23,27 +23,18 @@ function StatCard({ label, value, tone, subtitle }) {
   );
 }
 
-const AGE_BUCKET_COLOR = {
-  'Under 1 yr': 'success',
-  '1–2 yrs': 'warning',
-  '2–5 yrs': 'warning',
-  'Over 5 yrs': 'error',
-};
-
 export default function Dashboard() {
   const { data, isLoading, error } = useQuery({ queryKey: ['dashboard'], queryFn: () => api.get('/dashboard') });
 
   if (isLoading) return <CircularProgress size={24} />;
   if (error) return <Alert severity="error">{error.message}</Alert>;
 
-  const { totals, lowStock, recentTransactions, loans = [] } = data;
+  const { totals, lowStock, recentTransactions, loanAgeing = [] } = data;
 
   const grossProfit = totals.revenue - totals.cogs;
   const grossMarginPct = pct(grossProfit, totals.revenue);
   const expensePct = pct(totals.expenseTotal, totals.revenue);
   const netProfitPct = pct(totals.profit, totals.revenue);
-
-  const totalLoanOutstanding = loans.reduce((s, l) => s + (Number(l.outstanding) || 0), 0);
 
   return (
     <Box>
@@ -57,105 +48,61 @@ export default function Dashboard() {
         <Grid item><StatCard label="Net Profit" value={totals.profit} tone={totals.profit >= 0 ? 'good' : 'bad'} subtitle={netProfitPct != null ? `${netProfitPct}% margin` : null} /></Grid>
         <Grid item><StatCard label="Accounts Receivable" value={totals.ar} /></Grid>
         <Grid item><StatCard label="Accounts Payable" value={totals.ap} /></Grid>
-        {loans.length > 0 && (
-          <Grid item><StatCard label="Total Loans Outstanding" value={totalLoanOutstanding} tone="bad" /></Grid>
-        )}
       </Grid>
 
       {/* ── Loan Ageing ─────────────────────────────────────────────────── */}
       <Typography variant="h6" sx={{ mb: 1 }}>Loan Ageing</Typography>
-      {loans.length === 0 ? (
+      {loanAgeing.length === 0 ? (
         <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
-          No loans recorded. Add loan accounts under the Loans heading in Chart of Accounts.
+          No loans on record.
         </Typography>
       ) : (
-        <Table size="small" sx={{ mb: 4, maxWidth: 860 }}>
+        <Table size="small" sx={{ mb: 4 }}>
           <TableHead>
             <TableRow>
-              <TableCell>Lender / Account</TableCell>
+              <TableCell>Account / Lender</TableCell>
               <TableCell>Start Date</TableCell>
+              <TableCell align="right">Interest Rate</TableCell>
               <TableCell align="right">Principal</TableCell>
-              <TableCell align="right">Outstanding</TableCell>
-              <TableCell align="right">Rate</TableCell>
-              <TableCell>Age</TableCell>
+              <TableCell align="right">Outstanding Balance</TableCell>
+              <TableCell align="right">Days Active</TableCell>
+              <TableCell align="center">Age Bracket</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {loans.map((loan) => (
-              <TableRow key={loan.id}>
-                <TableCell>{loan.lender_name}</TableCell>
-                <TableCell>{loan.start_date || '—'}</TableCell>
-                <TableCell align="right">
-                  {loan.principal > 0 ? <Money value={loan.principal} /> : '—'}
-                </TableCell>
-                <TableCell align="right">
-                  <Money value={loan.outstanding} color={loan.outstanding > 0 ? 'error.main' : undefined} />
-                </TableCell>
-                <TableCell align="right">
-                  {loan.interest_rate != null ? `${loan.interest_rate}%` : '—'}
-                </TableCell>
+            {loanAgeing.map((l) => (
+              <TableRow key={l.id}>
                 <TableCell>
-                  {loan.age_bucket ? (
-                    <Chip
-                      label={`${loan.age_bucket} (${loan.age_days}d)`}
-                      size="small"
-                      color={AGE_BUCKET_COLOR[loan.age_bucket] || 'default'}
-                      variant="outlined"
-                    />
-                  ) : '—'}
+                  <Typography variant="body2" fontWeight={500}>{l.account_name}</Typography>
+                  {l.lender_name && l.lender_name !== l.account_name && (
+                    <Typography variant="caption" color="text.secondary">{l.lender_name}</Typography>
+                  )}
+                </TableCell>
+                <TableCell>{l.start_date || '—'}</TableCell>
+                <TableCell align="right">{l.interest_rate != null ? `${l.interest_rate}%` : '—'}</TableCell>
+                <TableCell align="right">{l.principal != null ? <Money value={l.principal} /> : '—'}</TableCell>
+                <TableCell align="right">
+                  <Money value={l.balance} bold color={l.balance > 0 ? 'error.main' : undefined} />
+                </TableCell>
+                <TableCell align="right">{l.days_outstanding != null ? l.days_outstanding : '—'}</TableCell>
+                <TableCell align="center">
+                  <Chip
+                    label={l.bucket}
+                    size="small"
+                    variant="outlined"
+                    color={
+                      l.bucket === '0-90 days' ? 'success' :
+                      l.bucket === '91-180 days' ? 'warning' :
+                      'error'
+                    }
+                    sx={{ fontSize: 11 }}
+                  />
                 </TableCell>
               </TableRow>
             ))}
-            <TableRow sx={{ '& td': { fontWeight: 'bold', borderTop: '2px solid', borderColor: 'divider' } }}>
-              <TableCell colSpan={3}>Total Outstanding</TableCell>
-              <TableCell align="right"><Money value={totalLoanOutstanding} /></TableCell>
-              <TableCell colSpan={2} />
-            </TableRow>
           </TableBody>
         </Table>
       )}
-
-      <Typography variant="h6" sx={{ mb: 1 }}>Inventory Alerts</Typography>
-      {lowStock.length === 0 ? (
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>No products below minimum stock.</Typography>
-      ) : (
-        <Table size="small" sx={{ mb: 4 }}>
-          <TableHead><TableRow><TableCell>Product</TableCell><TableCell align="right">Stock</TableCell><TableCell align="right">Min. Stock</TableCell></TableRow></TableHead>
-          <TableBody>
-            {lowStock.map((p) => (
-              <TableRow key={p.id}>
-                <TableCell>{p.name}</TableCell>
-                <TableCell align="right"><Chip label={p.stock} size="small" color="error" variant="outlined" /></TableCell>
-                <TableCell align="right">{p.min_stock}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
-
-      <Typography variant="h6" sx={{ mb: 1 }}>Recent Transactions</Typography>
-      {recentTransactions.length === 0 ? (
-        <Typography variant="body2" color="text.secondary">No transactions recorded yet.</Typography>
-      ) : (
-        <Table size="small">
-          <TableHead><TableRow><TableCell>Date</TableCell><TableCell>Type</TableCell><TableCell>Party</TableCell><TableCell>Invoice #</TableCell><TableCell align="right">Amount</TableCell></TableRow></TableHead>
-          <TableBody>
-            {recentTransactions.map((t, i) => (
-              <TableRow key={i}>
-                <TableCell>{t.date}</TableCell>
-                <TableCell>{t.kind}</TableCell>
-                <TableCell>{t.party}</TableCell>
-                <TableCell>{t.invoice_number || ''}</TableCell>
-                <TableCell align="right"><Money value={t.amount} /></TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      )}
-    </Box>
-  );
-}
-
 
       <Typography variant="h6" sx={{ mb: 1 }}>Inventory Alerts</Typography>
       {lowStock.length === 0 ? (
