@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Box, Typography, Button, Table, TableHead, TableRow, TableCell, TableBody, TextField, Select, MenuItem,
-  Checkbox, Paper, Alert, CircularProgress, Chip,
+  Checkbox, Paper, Alert, CircularProgress, Chip, Autocomplete,
 } from '@mui/material';
 import { api } from '../lib/api';
 import Money from '../components/Money';
@@ -78,14 +78,16 @@ export default function BankReconciliation() {
         </Alert>
       ) : (
         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center', mb: 3 }}>
-          <Select size="small" value={accountId} onChange={(e) => { setAccountId(e.target.value); setLoaded(null); }} displayEmpty sx={{ minWidth: 220 }}>
-            <MenuItem value="" disabled>Bank account…</MenuItem>
-            {accounts.map((a) => (
-              <MenuItem key={a.id} value={a.id}>
-                {a.name}{a.last_statement_date ? ` (last: ${String(a.last_statement_date).slice(0, 10)})` : ''}
-              </MenuItem>
-            ))}
-          </Select>
+          <Autocomplete
+            size="small"
+            options={accounts || []}
+            getOptionLabel={(a) => `${a.name}${a.last_statement_date ? ` (last: ${String(a.last_statement_date).slice(0, 10)})` : ''}`}
+            isOptionEqualToValue={(a, v) => a.id === v.id}
+            value={(accounts || []).find((a) => a.id === accountId) || null}
+            onChange={(_, v) => { setAccountId(v ? v.id : ''); setLoaded(null); }}
+            renderInput={(params) => <TextField {...params} label="Bank Account" placeholder="Search bank account…" />}
+            sx={{ minWidth: 280 }}
+          />
           <TextField size="small" type="date" label="Statement date" value={statementDate} onChange={(e) => setStatementDate(e.target.value)} InputLabelProps={{ shrink: true }} />
           <TextField size="small" type="number" label="Statement ending balance" value={statementBalance} onChange={(e) => setStatementBalance(e.target.value)} />
           <Button variant="outlined" disabled={!accountId || !statementDate} onClick={load}>Load transactions</Button>

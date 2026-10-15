@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Box, Typography, Button, Table, TableHead, TableRow, TableCell, TableBody, Dialog, DialogTitle,
   DialogContent, DialogActions, TextField, Select, MenuItem, IconButton, Chip, Alert, CircularProgress,
-  ToggleButton, ToggleButtonGroup,
+  ToggleButton, ToggleButtonGroup, Autocomplete,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
@@ -137,10 +137,16 @@ export default function Payments() {
             <ToggleButton value="supplier_payment">Paid to supplier</ToggleButton>
           </ToggleButtonGroup>
 
-          <Select value={form.partyId} onChange={set('partyId')} displayEmpty fullWidth>
-            <MenuItem value="" disabled>{isReceipt ? 'Customer…' : 'Supplier…'}</MenuItem>
-            {parties.map((p) => <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>)}
-          </Select>
+          <Autocomplete
+            size="small"
+            options={parties}
+            getOptionLabel={(p) => p.name || ''}
+            isOptionEqualToValue={(p, v) => p.id === v.id}
+            value={parties.find((p) => p.id === form.partyId) || null}
+            onChange={(_, v) => setForm((f) => ({ ...f, partyId: v ? v.id : '' }))}
+            renderInput={(params) => <TextField {...params} label={isReceipt ? 'Customer' : 'Supplier'} placeholder={isReceipt ? 'Search customer…' : 'Search supplier…'} />}
+            fullWidth
+          />
           {selectedParty && (
             <Typography variant="body2" color="text.secondary">
               Currently {isReceipt ? 'owes you' : 'owed to them'}: <Money value={selectedParty.outstanding} />
@@ -148,10 +154,16 @@ export default function Payments() {
           )}
 
           <TextField label="Amount" type="number" value={form.amount} onChange={set('amount')} fullWidth />
-          <Select value={form.accountId} onChange={set('accountId')} displayEmpty fullWidth>
-            <MenuItem value="" disabled>{isReceipt ? 'Received into…' : 'Paid from…'}</MenuItem>
-            {liquidAccounts.map((a) => <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>)}
-          </Select>
+          <Autocomplete
+            size="small"
+            options={liquidAccounts}
+            getOptionLabel={(a) => a.name || ''}
+            isOptionEqualToValue={(a, v) => a.id === v.id}
+            value={liquidAccounts.find((a) => a.id === form.accountId) || null}
+            onChange={(_, v) => setForm((f) => ({ ...f, accountId: v ? v.id : '' }))}
+            renderInput={(params) => <TextField {...params} label={isReceipt ? 'Received Into (Cash / Bank)' : 'Paid From (Cash / Bank)'} placeholder="Search account…" />}
+            fullWidth
+          />
           <Box sx={{ display: 'flex', gap: 2 }}>
             <TextField label="Date" type="date" value={form.date} onChange={set('date')} InputLabelProps={{ shrink: true }} fullWidth />
             <TextField label="Reference (cheque / transfer no.)" value={form.reference} onChange={set('reference')} fullWidth />

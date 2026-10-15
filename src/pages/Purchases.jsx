@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Box, Typography, Button, Table, TableHead, TableRow, TableCell, TableBody, Dialog, DialogTitle,
   DialogContent, DialogActions, TextField, Select, MenuItem, IconButton, Chip, Alert, CircularProgress,
-  InputAdornment, ToggleButtonGroup, ToggleButton, Divider,
+  InputAdornment, ToggleButtonGroup, ToggleButton, Divider, Autocomplete,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
@@ -217,10 +217,16 @@ export default function Purchases() {
             <TextField label="Invoice Number" placeholder="e.g. PINV-1001" value={form.invoiceNumber} onChange={set('invoiceNumber')} fullWidth />
             <TextField label="Pragyapan Patra Number" placeholder="e.g. PP-2082-001" value={form.pragyapanNumber} onChange={set('pragyapanNumber')} fullWidth />
           </Box>
-          <Select value={form.supplierId} onChange={set('supplierId')} displayEmpty fullWidth>
-            <MenuItem value="" disabled>Supplier…</MenuItem>
-            {(suppliers || []).map((s) => <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>)}
-          </Select>
+          <Autocomplete
+            size="small"
+            options={suppliers || []}
+            getOptionLabel={(s) => s.name || ''}
+            isOptionEqualToValue={(s, v) => s.id === v.id}
+            value={(suppliers || []).find((s) => s.id === form.supplierId) || null}
+            onChange={(_, v) => setForm((f) => ({ ...f, supplierId: v ? v.id : '' }))}
+            renderInput={(params) => <TextField {...params} label="Supplier" placeholder="Search supplier…" />}
+            fullWidth
+          />
 
           <Typography variant="body2" color="text.secondary">Products</Typography>
           {form.lines.map((line, i) => {
@@ -230,11 +236,16 @@ export default function Purchases() {
             return (
               <Box key={i} sx={{ border: isNew ? '1px solid' : 'none', borderColor: 'divider', p: isNew ? 1.5 : 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
                 <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                  <Select value={line.productId} onChange={(e) => onProductChange(i, e.target.value)} displayEmpty sx={{ flex: 3 }}>
-                    <MenuItem value="" disabled>Product…</MenuItem>
-                    {(products || []).map((prod) => <MenuItem key={prod.id} value={prod.id}>{prod.name}</MenuItem>)}
-                    <MenuItem value={NEW_PRODUCT}>+ Add New Product</MenuItem>
-                  </Select>
+                  <Autocomplete
+                    size="small"
+                    options={[...(products || []), { id: NEW_PRODUCT, name: '+ Add New Product' }]}
+                    getOptionLabel={(p) => p.name || ''}
+                    isOptionEqualToValue={(p, v) => p.id === v.id}
+                    value={line.productId ? (line.productId === NEW_PRODUCT ? { id: NEW_PRODUCT, name: '+ Add New Product' } : (products || []).find((p) => p.id === line.productId) || null) : null}
+                    onChange={(_, v) => onProductChange(i, v ? v.id : '')}
+                    renderInput={(params) => <TextField {...params} placeholder="Search product…" />}
+                    sx={{ flex: 3 }}
+                  />
                   <TextField type="number" label="Qty" value={line.qty} onChange={(e) => setLine(i, 'qty', e.target.value)} sx={{ flex: 1 }}
                     InputProps={{ endAdornment: !isNew && p ? <InputAdornment position="end">{p.unit}</InputAdornment> : null }} />
                   <TextField type="number" label="Unit Price" value={line.unitPrice} onChange={(e) => setLine(i, 'unitPrice', e.target.value)} sx={{ flex: 1 }} />
@@ -259,10 +270,16 @@ export default function Purchases() {
           <TextField label="Total" value={total.toFixed(2)} InputProps={{ readOnly: true }} fullWidth />
           <Box sx={{ display: 'flex', gap: 2 }}>
             <TextField label="Amount Paid Now" type="number" value={form.paidAmount} onChange={set('paidAmount')} fullWidth />
-            <Select value={form.accountId} onChange={set('accountId')} displayEmpty fullWidth>
-              <MenuItem value="" disabled>Paid from…</MenuItem>
-              {liquidAccounts.map((a) => <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>)}
-            </Select>
+            <Autocomplete
+              size="small"
+              options={liquidAccounts}
+              getOptionLabel={(a) => a.name || ''}
+              isOptionEqualToValue={(a, v) => a.id === v.id}
+              value={liquidAccounts.find((a) => a.id === form.accountId) || null}
+              onChange={(_, v) => setForm((f) => ({ ...f, accountId: v ? v.id : '' }))}
+              renderInput={(params) => <TextField {...params} label="Paid From (Cash / Bank)" placeholder="Search account…" />}
+              fullWidth
+            />
           </Box>
           <Typography variant="body2" sx={{ opacity: 0.75 }}>
             {credit > 0 ? <>On credit: <Money value={credit} /></> : 'Fully paid'}

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Box, Typography, Button, Table, TableHead, TableRow, TableCell, TableBody, Dialog, DialogTitle,
   DialogContent, DialogActions, TextField, Select, MenuItem, IconButton, Alert, CircularProgress,
+  Autocomplete,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
@@ -94,16 +95,28 @@ export default function Expenses() {
             InputLabelProps={{ shrink: true }}
             fullWidth
           />
-          <Select value={form.categoryAccountId} onChange={set('categoryAccountId')} displayEmpty fullWidth>
-            <MenuItem value="" disabled>Category…</MenuItem>
-            {expenseAccounts.map((a) => <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>)}
-          </Select>
+          <Autocomplete
+            size="small"
+            options={expenseAccounts}
+            getOptionLabel={(a) => a.name || ''}
+            isOptionEqualToValue={(a, v) => a.id === v.id}
+            value={expenseAccounts.find((a) => a.id === form.categoryAccountId) || null}
+            onChange={(_, v) => setForm((f) => ({ ...f, categoryAccountId: v ? v.id : '' }))}
+            renderInput={(params) => <TextField {...params} label="Category (Expense Account)" placeholder="Search category…" />}
+            fullWidth
+          />
           <TextField label="Note" value={form.note} onChange={set('note')} fullWidth />
           <TextField label="Amount" type="number" value={form.amount} onChange={set('amount')} fullWidth />
-          <Select value={form.paymentAccountId} onChange={set('paymentAccountId')} displayEmpty fullWidth>
-            <MenuItem value="" disabled>Paid from…</MenuItem>
-            {liquidAccounts.map((a) => <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>)}
-          </Select>
+          <Autocomplete
+            size="small"
+            options={liquidAccounts}
+            getOptionLabel={(a) => a.name || ''}
+            isOptionEqualToValue={(a, v) => a.id === v.id}
+            value={liquidAccounts.find((a) => a.id === form.paymentAccountId) || null}
+            onChange={(_, v) => setForm((f) => ({ ...f, paymentAccountId: v ? v.id : '' }))}
+            renderInput={(params) => <TextField {...params} label="Paid From (Cash / Bank)" placeholder="Search payment account…" />}
+            fullWidth
+          />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpen(false)}>Cancel</Button>

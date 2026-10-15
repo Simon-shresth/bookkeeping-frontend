@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Box, Typography, Button, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Select, MenuItem,
   ListSubheader, IconButton, Table, TableHead, TableRow, TableCell, TableBody, Paper, Chip, Alert, CircularProgress,
+  Autocomplete,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
@@ -127,19 +128,17 @@ export default function JournalEntries() {
 
       {/* ── Filters ─────────────────────────────────────────────────────── */}
       <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2, alignItems: 'center' }}>
-        <Select
+        <Autocomplete
           size="small"
-          value={filterAccountId}
-          onChange={(e) => setFilterAccountId(e.target.value)}
-          displayEmpty
-          sx={{ minWidth: 220 }}
-        >
-          <MenuItem value="">All accounts</MenuItem>
-          {Object.entries(grouped).map(([heading, accs]) => [
-            <ListSubheader key={heading}>{heading}</ListSubheader>,
-            ...accs.map((a) => <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>),
-          ])}
-        </Select>
+          options={accounts || []}
+          groupBy={(a) => `${a.category}: ${a.heading}`}
+          getOptionLabel={(a) => a.name || ''}
+          isOptionEqualToValue={(a, v) => a.id === v.id}
+          value={(accounts || []).find((a) => a.id === filterAccountId) || null}
+          onChange={(_, v) => setFilterAccountId(v ? v.id : '')}
+          renderInput={(params) => <TextField {...params} label="Account" placeholder="All accounts" />}
+          sx={{ minWidth: 260 }}
+        />
         <TextField size="small" type="date" label="From" value={filterFrom} onChange={(e) => setFilterFrom(e.target.value)} InputLabelProps={{ shrink: true }} />
         <TextField size="small" type="date" label="Till" value={filterTill} onChange={(e) => setFilterTill(e.target.value)} InputLabelProps={{ shrink: true }} />
         {(filterAccountId || filterFrom || filterTill) && (
@@ -245,17 +244,18 @@ export default function JournalEntries() {
 
           <Typography variant="body2" color="text.secondary">Lines</Typography>
           {lines.map((line, i) => (
-            <Box key={i} sx={{ display: 'flex', gap: 1 }}>
-              <Select
-                size="small" value={line.accountId} displayEmpty sx={{ flex: 2 }}
-                onChange={(e) => setLines((ls) => ls.map((l, j) => (j === i ? { ...l, accountId: e.target.value } : l)))}
-              >
-                <MenuItem value="" disabled>Account…</MenuItem>
-                {Object.entries(grouped).map(([heading, accs]) => [
-                  <ListSubheader key={heading}>{heading}</ListSubheader>,
-                  ...accs.map((a) => <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>),
-                ])}
-              </Select>
+            <Box key={i} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+              <Autocomplete
+                size="small"
+                options={accounts || []}
+                groupBy={(a) => `${a.category}: ${a.heading}`}
+                getOptionLabel={(a) => a.name || ''}
+                isOptionEqualToValue={(a, v) => a.id === v.id}
+                value={(accounts || []).find((a) => a.id === line.accountId) || null}
+                onChange={(_, v) => setLines((ls) => ls.map((l, j) => (j === i ? { ...l, accountId: v ? v.id : '' } : l)))}
+                renderInput={(params) => <TextField {...params} placeholder="Select account…" />}
+                sx={{ flex: 2 }}
+              />
               <TextField
                 size="small" type="number" placeholder="Debit" sx={{ flex: 1 }} value={line.debit}
                 onChange={(e) => setLines((ls) => ls.map((l, j) => (j === i ? { ...l, debit: e.target.value } : l)))}
