@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Box, Typography, Autocomplete, Table, TableHead, TableRow, TableCell, TableBody, CircularProgress, Alert, Chip, TextField, Button } from '@mui/material';
+import { Box, Typography, Autocomplete, Table, TableHead, TableRow, TableCell, TableBody, CircularProgress, Alert, Chip, TextField, Button, FormControlLabel, Switch } from '@mui/material';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdfOutlined';
 import { api, saveBlob } from '../lib/api';
 import Money from '../components/Money';
@@ -10,16 +10,20 @@ export default function GeneralLedger() {
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [from, setFrom] = useState('');
   const [till, setTill] = useState('');
+  const [showAllYears, setShowAllYears] = useState(false);
 
   const accountId = selectedAccount?.id || '';
 
+  // Build query string. When the user hasn't set a custom from/till, we send
+  // allYears=true/false so the backend can default to the current fiscal year.
   const query = new URLSearchParams();
   if (from) query.set('from', from);
   if (till) query.set('till', till);
+  if (showAllYears && !from) query.set('allYears', 'true');
   const qs = query.toString();
 
   const { data: ledger, isLoading: loadingLedger, error } = useQuery({
-    queryKey: ['ledger', accountId, from, till],
+    queryKey: ['ledger', accountId, from, till, showAllYears],
     queryFn: () => api.get(`/ledger/${accountId}${qs ? `?${qs}` : ''}`),
     enabled: !!accountId,
   });
@@ -32,6 +36,10 @@ export default function GeneralLedger() {
   };
 
   if (loadingAccounts) return <CircularProgress size={24} />;
+
+  const periodLabel = from || till
+    ? `${from || 'start'} to ${till || 'present'}`
+    : (showAllYears ? 'All years' : 'Current fiscal year');
 
   return (
     <Box>
@@ -53,6 +61,10 @@ export default function GeneralLedger() {
         />
         <TextField size="small" type="date" label="From" value={from} onChange={(e) => setFrom(e.target.value)} InputLabelProps={{ shrink: true }} />
         <TextField size="small" type="date" label="Till" value={till} onChange={(e) => setTill(e.target.value)} InputLabelProps={{ shrink: true }} />
+        <FormControlLabel
+          control={<Switch size="small" checked={showAllYears} onChange={(e) => setShowAllYears(e.target.checked)} disabled={!!from} />}
+          label="Show all years"
+        />
         {accountId && (
           <Button size="small" variant="outlined" startIcon={<PictureAsPdfIcon />} onClick={downloadPdf} disabled={!ledger}>
             Download PDF
@@ -60,17 +72,17 @@ export default function GeneralLedger() {
         )}
       </Box>
 
-      {!accountId && <Typography variant="body2" color="text.secondary">Choose an account to view its ledger. Leave From/Till blank to see everything.</Typography>}
+      {!accountId && <Typography variant="body2" color="text.secondary">Choose an account to view its ledger. By default only the current fiscal year is shown — toggle “Show all years” to see prior-year history.</Typography>}
       {error && <Alert severity="error">{error.message}</Alert>}
       {loadingLedger && <CircularProgress size={24} />}
 
       {ledger && (
         <Box>
-          <Typography variant="h6" sx={{ mb: 2 }}>
-            {ledger.account.name}{' '}
-            <Typography component="span" variant="body2" color="text.secondary">
-              — Balance: <Money value={ledger.closingBalance} />
-            </Typography>
+          <Typography variant="h6" sx={{ mb: 0.5 }}>
+            {ledger.account.name}
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Period: {periodLabel} · Closing Balance: <Money value={ledger.closingBalance} bold />
           </Typography>
           <Table size="small">
             <TableHead>
@@ -84,9 +96,9 @@ export default function GeneralLedger() {
               </TableRow>
             </TableHead>
             <TableBody>
-              <TableRow>
-                <TableCell colSpan={5} sx={{ opacity: 0.6 }}>Opening Balance</TableCell>
-                <TableCell align="right" sx={{ opacity: 0.6 }}><Money value={ledger.openingBalance} /></TableCell>
+              <TableRow sx={{ bgcolor: 'action.hover' }}>
+                <TableCell colSpan={5} sx={{ fontWeight: 600 }}>Opening Balance (as of {ledger.from || 'start'})</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 600 }}><Money value={ledger.openingBalance} /></TableCell>
               </TableRow>
               {ledger.entries.length === 0 ? (
                 <TableRow><TableCell colSpan={6} align="center" sx={{ fontStyle: 'italic', opacity: 0.6 }}>No entries posted to this account in this period.</TableCell></TableRow>
@@ -105,6 +117,10 @@ export default function GeneralLedger() {
                   </TableRow>
                 ))
               )}
+              <TableRow sx={{ '& td': { fontWeight: 600, borderTop: '2px solid', borderColor: 'divider' } }}>
+                <TableCell colSpan={5}>Closing Balance</TableCell>
+                <TableCell align="right"><Money value={ledger.closingBalance} bold /></TableCell>
+              </TableRow>
             </TableBody>
           </Table>
         </Box>
