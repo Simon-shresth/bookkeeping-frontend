@@ -84,7 +84,7 @@ export default function Layout() {
         <Toolbar sx={{ borderBottom: '1px solid', borderColor: 'divider', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', minHeight: 64, px: collapsed ? 1 : 2 }}>
           {!collapsed && (
             <>
-              <Box component="img" src="/bkl.png" alt="Ledger" sx={{ height: 32, objectFit: 'contain' }} />
+              <Box component="img" src="bkl.png" alt="Ledger" sx={{ height: 32, objectFit: 'contain' }} />
               {profile?.company_name && (
                 <Typography variant="caption" color="text.secondary" noWrap sx={{ maxWidth: drawerWidth - 32, mt: 0.25, fontWeight: 500 }}>
                   {profile.company_name}
@@ -92,7 +92,7 @@ export default function Layout() {
               )}
             </>
           )}
-          {collapsed && <Box component="img" src="/bk.png" alt="Ledger" sx={{ height: 32, objectFit: 'contain', mx: 'auto' }} />}
+          {collapsed && <Box component="img" src="bk.png" alt="Ledger" sx={{ height: 32, objectFit: 'contain', mx: 'auto' }} />}
         </Toolbar>
         <List sx={{ pt: 1, px: collapsed ? 0.5 : 0 }}>
           {visibleItems.map((item) => {
