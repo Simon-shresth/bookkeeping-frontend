@@ -100,9 +100,9 @@ export default function Purchases() {
         return { lineType: 'service', description: l.description, accountId: l.accountId, qty: +l.qty || 1, unitPrice: +l.unitPrice || 0 };
       }
       if (l.productId === NEW_PRODUCT) {
-        return { newProduct: { name: l.newName, sellPrice: l.newSellPrice ? +l.newSellPrice : undefined, minStock: +l.newMinStock || 0, unit: l.newUnit || 'pcs' }, qty: +l.qty, unitPrice: +l.unitPrice };
+        return { lineType: 'product', newProduct: { name: l.newName, sellPrice: l.newSellPrice ? +l.newSellPrice : undefined, minStock: +l.newMinStock || 0, unit: l.newUnit || 'pcs' }, qty: +l.qty, unitPrice: +l.unitPrice };
       }
-      return { productId: l.productId, qty: +l.qty, unitPrice: +l.unitPrice };
+      return { lineType: 'product', productId: l.productId, qty: +l.qty, unitPrice: +l.unitPrice };
     }),
     paidAmount: +form.paidAmount || 0,
     accountId: form.accountId,
