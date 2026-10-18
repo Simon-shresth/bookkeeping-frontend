@@ -56,7 +56,10 @@ export default function ProtectedRoute({ children }) {
   const { loading, session, profile, profileError, profileLoading, pendingOnboarding, signOut, reloadProfile, completeOnboarding } = useAuth();
   const location = useLocation();
 
-  if (loading || (session && !profile && !profileError && !pendingOnboarding) || profileLoading) {
+  // Only show the full-screen loading spinner on initial authentication check
+  // when we don't yet have a profile. Once a profile exists, background token/profile
+  // checks should NEVER unmount the application tree.
+  if (loading || (!profile && !profileError && !pendingOnboarding && (session || profileLoading))) {
     return (
       <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <CircularProgress size={28} />

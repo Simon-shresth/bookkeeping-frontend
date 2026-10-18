@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { api } from '../lib/api';
 
@@ -12,6 +12,7 @@ export function AuthProvider({ children }) {
   const [profileLoading, setProfileLoading] = useState(false);
   // Surfaced to ProtectedRoute so it can show a "finish setup" form
   const [pendingOnboarding, setPendingOnboarding] = useState(false);
+  const loadedUserIdRef = useRef(null);
 
   const loadProfile = useCallback(async () => {
     setProfileLoading(true);
@@ -61,14 +62,30 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => setSession(session));
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      setSession(session);
+      if (event === 'SIGNED_OUT' || !session) {
+        loadedUserIdRef.current = null;
+        setProfile(null);
+        setPendingOnboarding(false);
+      }
+    });
     return () => sub.subscription.unsubscribe();
   }, []);
 
+  const userId = session?.user?.id;
   useEffect(() => {
-    if (session) loadProfile();
-    else { setProfile(null); setPendingOnboarding(false); }
-  }, [session, loadProfile]);
+    if (userId) {
+      if (loadedUserIdRef.current !== userId) {
+        loadedUserIdRef.current = userId;
+        loadProfile();
+      }
+    } else if (session === null) {
+      loadedUserIdRef.current = null;
+      setProfile(null);
+      setPendingOnboarding(false);
+    }
+  }, [userId, session, loadProfile]);
 
   const signIn = async (email, password, expectedCompanyName) => {
     const result = await supabase.auth.signInWithPassword({ email, password });
@@ -93,7 +110,10 @@ export function AuthProvider({ children }) {
     }
     return result;
   };
-  const signOut = () => supabase.auth.signOut();
+  const signOut = () => {
+    loadedUserIdRef.current = null;
+    return supabase.auth.signOut();
+  };
 
   const signUpWithCompany = async (companyName, email, password) => {
     localStorage.setItem(PENDING_COMPANY_KEY, companyName);
