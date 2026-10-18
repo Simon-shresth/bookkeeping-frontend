@@ -14,8 +14,9 @@ import { useAuth, hasRole } from '../context/AuthContext';
 
 const todayDate = () => new Date().toISOString().slice(0, 10);
 const NEW_PRODUCT = '__new__';
-const emptyLine = () => ({ productId: '', qty: 1, unitPrice: '', newName: '', newSellPrice: '', newMinStock: 0, newUnit: 'pcs' });
-const emptyForm = () => ({ date: todayDate(), invoiceNumber: '', pragyapanNumber: '', supplierId: '', lines: [emptyLine()], paidAmount: 0, accountId: '' });
+const emptyProductLine = () => ({ lineType: 'product', productId: '', qty: 1, unitPrice: '', newName: '', newSellPrice: '', newMinStock: 0, newUnit: 'pcs' });
+const emptyServiceLine = () => ({ lineType: 'service', description: '', accountId: '', qty: 1, unitPrice: '' });
+const emptyForm = () => ({ date: todayDate(), invoiceNumber: '', pragyapanNumber: '', supplierId: '', narration: '', lines: [emptyProductLine()], paidAmount: 0, accountId: '' });
 
 export default function Purchases() {
   const { profile } = useAuth();
@@ -49,6 +50,7 @@ export default function Purchases() {
   const { data: products } = useQuery({ queryKey: ['products'], queryFn: () => api.get('/products') });
   const { data: accounts } = useQuery({ queryKey: ['liquid-accounts'], queryFn: () => api.get('/accounts/options') });
   const liquidAccounts = useMemo(() => (accounts || []).filter((a) => a.heading === 'Cash' || a.heading === 'Bank'), [accounts]);
+  const expenseAccounts = useMemo(() => (accounts || []).filter((a) => a.category === 'Expenses' || a.category === 'Assets'), [accounts]);
   const productById = useMemo(() => Object.fromEntries((products || []).map((p) => [p.id, p])), [products]);
 
   const [open, setOpen] = useState(false);
@@ -62,8 +64,14 @@ export default function Purchases() {
     setEditing(p);
     setForm({
       date: p.date || todayDate(),
-      invoiceNumber: p.invoice_number || '', pragyapanNumber: p.pragyapan_number || '', supplierId: p.supplier_id,
-      lines: p.lines.map((l) => ({ productId: l.product_id, qty: l.qty, unitPrice: l.unit_price, newName: '', newSellPrice: '', newMinStock: 0, newUnit: 'pcs' })),
+      invoiceNumber: p.invoice_number || '',
+      pragyapanNumber: p.pragyapan_number || '',
+      supplierId: p.supplier_id,
+      narration: p.narration || '',
+      lines: p.lines.map((l) => l.line_type === 'service'
+        ? { lineType: 'service', description: l.description || '', accountId: l.account_id || '', qty: l.qty, unitPrice: l.unit_price }
+        : { lineType: 'product', productId: l.product_id, qty: l.qty, unitPrice: l.unit_price, newName: '', newSellPrice: '', newMinStock: 0, newUnit: 'pcs' }
+      ),
       paidAmount: p.paid_amount, accountId: p.payment_account_id || liquidAccounts[0]?.id || '',
     });
     setOpen(true);
@@ -83,7 +91,14 @@ export default function Purchases() {
     invoiceNumber: form.invoiceNumber || undefined,
     pragyapanNumber: form.pragyapanNumber || undefined,
     supplierId: form.supplierId,
-    lines: form.lines.filter((l) => l.productId).map((l) => {
+    narration: form.narration || undefined,
+    lines: form.lines.filter((l) => {
+      if (l.lineType === 'service') return l.description && l.accountId;
+      return l.productId;
+    }).map((l) => {
+      if (l.lineType === 'service') {
+        return { lineType: 'service', description: l.description, accountId: l.accountId, qty: +l.qty || 1, unitPrice: +l.unitPrice || 0 };
+      }
       if (l.productId === NEW_PRODUCT) {
         return { newProduct: { name: l.newName, sellPrice: l.newSellPrice ? +l.newSellPrice : undefined, minStock: +l.newMinStock || 0, unit: l.newUnit || 'pcs' }, qty: +l.qty, unitPrice: +l.unitPrice };
       }
@@ -106,7 +121,10 @@ export default function Purchases() {
     onError: (err) => alert(err.message),
   });
 
-  const canSubmit = form.supplierId && form.lines.some((l) => l.productId && (l.productId !== NEW_PRODUCT || l.newName) && +l.qty > 0) && form.accountId;
+  const canSubmit = form.supplierId && form.accountId && form.lines.some((l) => {
+    if (l.lineType === 'service') return l.description && l.accountId && +l.qty > 0;
+    return l.productId && (l.productId !== NEW_PRODUCT || l.newName) && +l.qty > 0;
+  });
   const hasFilters = search || from || till || purchaseType;
 
   if (isLoading) return <CircularProgress size={24} />;
@@ -177,13 +195,18 @@ export default function Purchases() {
           <TableBody>
             {purchases.map((p) => {
               const status = p.credit_amount <= 0 ? 'Paid' : p.paid_amount > 0 ? `Partial · ${p.account_name}` : 'Credit';
-              const itemsLabel = p.lines.length ? `${p.lines[0].product_name}${p.lines.length > 1 ? ` +${p.lines.length - 1} more` : ''}` : '';
+              const firstLine = p.lines[0];
+              const firstName = firstLine?.line_type === 'service' ? firstLine?.description : firstLine?.product_name;
+              const itemsLabel = p.lines.length ? `${firstName}${p.lines.length > 1 ? ` +${p.lines.length - 1} more` : ''}` : '';
               return (
                 <TableRow key={p.id}>
                   <TableCell>{p.date}</TableCell>
                   <TableCell>{p.invoice_number}</TableCell>
                   <TableCell>{p.pragyapan_number}</TableCell>
-                  <TableCell>{p.supplier_name}</TableCell>
+                  <TableCell>
+                    {p.supplier_name}
+                    {p.narration && <Typography variant="caption" display="block" color="text.secondary" noWrap sx={{ maxWidth: 160 }}>{p.narration}</Typography>}
+                  </TableCell>
                   <TableCell>{itemsLabel}</TableCell>
                   <TableCell align="right"><Money value={p.total} /></TableCell>
                   <TableCell><Chip label={status} size="small" color={p.credit_amount <= 0 ? 'success' : 'default'} variant="outlined" /></TableCell>
@@ -227,45 +250,106 @@ export default function Purchases() {
             renderInput={(params) => <TextField {...params} label="Supplier" placeholder="Search supplier…" />}
             fullWidth
           />
+          <TextField
+            label="Narration"
+            placeholder="e.g. Purchase of consulting services, Q3 materials…"
+            value={form.narration}
+            onChange={set('narration')}
+            fullWidth
+            multiline
+            minRows={2}
+          />
 
-          <Typography variant="body2" color="text.secondary">Products</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>Line Items</Typography>
           {form.lines.map((line, i) => {
-            const isNew = line.productId === NEW_PRODUCT;
-            const p = productById[line.productId];
+            const isService = line.lineType === 'service';
+            const isNew = !isService && line.productId === NEW_PRODUCT;
+            const p = !isService ? productById[line.productId] : null;
             const lineTotal = (+line.qty || 0) * (+line.unitPrice || 0);
             return (
-              <Box key={i} sx={{ border: isNew ? '1px solid' : 'none', borderColor: 'divider', p: isNew ? 1.5 : 0, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                  <Autocomplete
-                    size="small"
-                    options={[...(products || []), { id: NEW_PRODUCT, name: '+ Add New Product' }]}
-                    getOptionLabel={(p) => p.name || ''}
-                    isOptionEqualToValue={(p, v) => p.id === v.id}
-                    value={line.productId ? (line.productId === NEW_PRODUCT ? { id: NEW_PRODUCT, name: '+ Add New Product' } : (products || []).find((p) => p.id === line.productId) || null) : null}
-                    onChange={(_, v) => onProductChange(i, v ? v.id : '')}
-                    renderInput={(params) => <TextField {...params} placeholder="Search product…" />}
-                    sx={{ flex: 3 }}
-                  />
-                  <TextField type="number" label="Qty" value={line.qty} onChange={(e) => setLine(i, 'qty', e.target.value)} sx={{ flex: 1 }}
-                    InputProps={{ endAdornment: !isNew && p ? <InputAdornment position="end">{p.unit}</InputAdornment> : null }} />
-                  <TextField type="number" label="Unit Price" value={line.unitPrice} onChange={(e) => setLine(i, 'unitPrice', e.target.value)} sx={{ flex: 1 }} />
-                  <Typography variant="body2" sx={{ flex: 1, textAlign: 'right' }}><Money value={lineTotal} /></Typography>
+              <Box key={i} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1, p: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                {/* Line type toggle */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <ToggleButtonGroup
+                    size="small" exclusive
+                    value={line.lineType}
+                    onChange={(_, v) => {
+                      if (!v) return;
+                      setForm((f) => ({
+                        ...f,
+                        lines: f.lines.map((l, j) => j === i
+                          ? (v === 'service' ? emptyServiceLine() : emptyProductLine())
+                          : l
+                        ),
+                      }));
+                    }}
+                  >
+                    <ToggleButton value="product">Product</ToggleButton>
+                    <ToggleButton value="service">Service</ToggleButton>
+                  </ToggleButtonGroup>
                   <IconButton size="small" disabled={form.lines.length <= 1} onClick={() => setForm((f) => ({ ...f, lines: f.lines.filter((_, j) => j !== i) }))}>
                     <DeleteIcon fontSize="small" />
                   </IconButton>
                 </Box>
-                {isNew && (
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <TextField size="small" label="New Product Name" value={line.newName} onChange={(e) => setLine(i, 'newName', e.target.value)} sx={{ flex: 2 }} />
-                    <TextField size="small" label="Selling Price" type="number" value={line.newSellPrice} onChange={(e) => setLine(i, 'newSellPrice', e.target.value)} sx={{ flex: 1 }} />
-                    <TextField size="small" label="Unit" value={line.newUnit} onChange={(e) => setLine(i, 'newUnit', e.target.value)} sx={{ flex: 1 }} />
-                    <TextField size="small" label="Min. Stock" type="number" value={line.newMinStock} onChange={(e) => setLine(i, 'newMinStock', e.target.value)} sx={{ flex: 1 }} />
+
+                {isService ? (
+                  /* ── Service line fields ─────────────────────────────── */
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    <TextField
+                      size="small" label="Service Description" value={line.description}
+                      onChange={(e) => setLine(i, 'description', e.target.value)} sx={{ flex: 3, minWidth: 180 }}
+                    />
+                    <Autocomplete
+                      size="small"
+                      options={expenseAccounts}
+                      groupBy={(a) => `${a.category}: ${a.heading}`}
+                      getOptionLabel={(a) => a.name || ''}
+                      isOptionEqualToValue={(a, v) => a.id === v.id}
+                      value={expenseAccounts.find((a) => a.id === line.accountId) || null}
+                      onChange={(_, v) => setLine(i, 'accountId', v ? v.id : '')}
+                      renderInput={(params) => <TextField {...params} label="Expense / Service Account" />}
+                      sx={{ flex: 2, minWidth: 180 }}
+                    />
+                    <TextField size="small" type="number" label="Qty" value={line.qty} onChange={(e) => setLine(i, 'qty', e.target.value)} sx={{ flex: 1, minWidth: 80 }} />
+                    <TextField size="small" type="number" label="Rate" value={line.unitPrice} onChange={(e) => setLine(i, 'unitPrice', e.target.value)} sx={{ flex: 1, minWidth: 100 }} />
+                    <Typography variant="body2" sx={{ alignSelf: 'center', minWidth: 90, textAlign: 'right' }}><Money value={lineTotal} /></Typography>
+                  </Box>
+                ) : (
+                  /* ── Product line fields ─────────────────────────────── */
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                      <Autocomplete
+                        size="small"
+                        options={[...(products || []), { id: NEW_PRODUCT, name: '+ Add New Product' }]}
+                        getOptionLabel={(p) => p.name || ''}
+                        isOptionEqualToValue={(p, v) => p.id === v.id}
+                        value={line.productId ? (line.productId === NEW_PRODUCT ? { id: NEW_PRODUCT, name: '+ Add New Product' } : (products || []).find((p) => p.id === line.productId) || null) : null}
+                        onChange={(_, v) => onProductChange(i, v ? v.id : '')}
+                        renderInput={(params) => <TextField {...params} placeholder="Search product…" />}
+                        sx={{ flex: 3 }}
+                      />
+                      <TextField type="number" label="Qty" value={line.qty} onChange={(e) => setLine(i, 'qty', e.target.value)} sx={{ flex: 1 }}
+                        InputProps={{ endAdornment: !isNew && p ? <InputAdornment position="end">{p.unit}</InputAdornment> : null }} />
+                      <TextField type="number" label="Unit Price" value={line.unitPrice} onChange={(e) => setLine(i, 'unitPrice', e.target.value)} sx={{ flex: 1 }} />
+                      <Typography variant="body2" sx={{ flex: 1, textAlign: 'right' }}><Money value={lineTotal} /></Typography>
+                    </Box>
+                    {isNew && (
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <TextField size="small" label="New Product Name" value={line.newName} onChange={(e) => setLine(i, 'newName', e.target.value)} sx={{ flex: 2 }} />
+                        <TextField size="small" label="Selling Price" type="number" value={line.newSellPrice} onChange={(e) => setLine(i, 'newSellPrice', e.target.value)} sx={{ flex: 1 }} />
+                        <TextField size="small" label="Unit" value={line.newUnit} onChange={(e) => setLine(i, 'newUnit', e.target.value)} sx={{ flex: 1 }} />
+                        <TextField size="small" label="Min. Stock" type="number" value={line.newMinStock} onChange={(e) => setLine(i, 'newMinStock', e.target.value)} sx={{ flex: 1 }} />
+                      </Box>
+                    )}
                   </Box>
                 )}
               </Box>
             );
           })}
-          <Button size="small" sx={{ alignSelf: 'flex-start' }} onClick={() => setForm((f) => ({ ...f, lines: [...f.lines, emptyLine()] }))}>+ Add Product</Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button size="small" variant="outlined" onClick={() => setForm((f) => ({ ...f, lines: [...f.lines, emptyProductLine()] }))}>+ Add Product</Button>
+            <Button size="small" variant="outlined" color="secondary" onClick={() => setForm((f) => ({ ...f, lines: [...f.lines, emptyServiceLine()] }))}>+ Add Service</Button>
+          </Box>
 
           <TextField label="Total" value={total.toFixed(2)} InputProps={{ readOnly: true }} fullWidth />
           <Box sx={{ display: 'flex', gap: 2 }}>

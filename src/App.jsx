@@ -22,6 +22,46 @@ import Expenses from './pages/Expenses';
 import Reports from './pages/Reports';
 import Salary from './pages/Salary';
 import OpeningBalances from './pages/OpeningBalances';
+import DayBook from './pages/DayBook';
+
+
+export default function App() {
+  return (
+    <Routes>
+      <Route path="/login" element={<Login />} />
+      <Route path="/signup" element={<Signup />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<Dashboard />} />
+        <Route path="chart-of-accounts" element={<ChartOfAccounts />} />
+        <Route path="journal" element={<JournalEntries />} />
+        <Route path="ledger" element={<GeneralLedger />} />
+        <Route path="opening-balances" element={<OpeningBalances />} />
+        <Route path="daybook" element={<DayBook />} />
+        <Route path="customers" element={<Customers />} />
+        <Route path="suppliers" element={<Suppliers />} />
+        <Route path="products" element={<Products />} />
+        <Route path="sales" element={<Sales />} />
+        <Route path="purchases" element={<Purchases />} />
+        <Route path="expenses" element={<Expenses />} />
+        <Route path="salary" element={<Salary />} />
+        <Route path="reports" element={<Reports />} />
+        <Route path="users" element={<Users />} />
+        <Route path="payments" element={<Payments />} />
+        <Route path="reconciliation" element={<BankReconciliation />} />
+        <Route path="audit" element={<AuditLog />} />
+      </Route>
+    </Routes>
+  );
+}
 
 
 export default function App() {
