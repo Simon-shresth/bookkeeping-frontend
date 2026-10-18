@@ -11,6 +11,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import { api } from '../lib/api';
 import Money from '../components/Money';
 import { useAuth, hasRole } from '../context/AuthContext';
+import NewPartyDialog from '../components/NewPartyDialog';
 
 const todayDate = () => new Date().toISOString().slice(0, 10);
 const NEW_PRODUCT = '__new__';
@@ -55,6 +56,7 @@ export default function Purchases() {
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [newSupplierOpen, setNewSupplierOpen] = useState(false);
   const [form, setForm] = useState(emptyForm());
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const setLine = (i, k, v) => setForm((f) => ({ ...f, lines: f.lines.map((l, j) => (j === i ? { ...l, [k]: v } : l)) }));
@@ -240,16 +242,29 @@ export default function Purchases() {
             <TextField label="Invoice Number" placeholder="e.g. PINV-1001" value={form.invoiceNumber} onChange={set('invoiceNumber')} fullWidth />
             <TextField label="Pragyapan Patra Number" placeholder="e.g. PP-2082-001" value={form.pragyapanNumber} onChange={set('pragyapanNumber')} fullWidth />
           </Box>
-          <Autocomplete
-            size="small"
-            options={suppliers || []}
-            getOptionLabel={(s) => s.name || ''}
-            isOptionEqualToValue={(s, v) => s.id === v.id}
-            value={(suppliers || []).find((s) => s.id === form.supplierId) || null}
-            onChange={(_, v) => setForm((f) => ({ ...f, supplierId: v ? v.id : '' }))}
-            renderInput={(params) => <TextField {...params} label="Supplier" placeholder="Search supplier…" />}
-            fullWidth
-          />
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <Autocomplete
+              size="small"
+              options={suppliers || []}
+              getOptionLabel={(s) => s.name || ''}
+              isOptionEqualToValue={(s, v) => s.id === v.id}
+              value={(suppliers || []).find((s) => s.id === form.supplierId) || null}
+              onChange={(_, v) => setForm((f) => ({ ...f, supplierId: v ? v.id : '' }))}
+              renderInput={(params) => <TextField {...params} label="Supplier" placeholder="Search supplier…" />}
+              sx={{ flexGrow: 1 }}
+            />
+            {canEdit && (
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<AddIcon />}
+                onClick={() => setNewSupplierOpen(true)}
+                sx={{ whiteSpace: 'nowrap', height: 40 }}
+              >
+                New Supplier
+              </Button>
+            )}
+          </Box>
           <TextField
             label="Narration"
             placeholder="e.g. Purchase of consulting services, Q3 materials…"
@@ -376,6 +391,15 @@ export default function Purchases() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <NewPartyDialog
+        open={newSupplierOpen}
+        onClose={() => setNewSupplierOpen(false)}
+        type="supplier"
+        onCreated={(newSupplier) => {
+          setForm((f) => ({ ...f, supplierId: newSupplier.id }));
+        }}
+      />
     </Box>
   );
 }

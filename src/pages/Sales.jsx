@@ -12,6 +12,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import { api, saveBlob } from '../lib/api';
 import Money from '../components/Money';
 import { useAuth, hasRole } from '../context/AuthContext';
+import NewPartyDialog from '../components/NewPartyDialog';
 
 const todayDate = () => new Date().toISOString().slice(0, 10);
 const emptyLine = () => ({ productId: '', qty: 1, price: '', unit: '' });
@@ -53,6 +54,7 @@ export default function Sales() {
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [newCustomerOpen, setNewCustomerOpen] = useState(false);
   const [form, setForm] = useState(emptyForm());
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
   const setLine = (i, k, v) => setForm((f) => ({ ...f, lines: f.lines.map((l, j) => (j === i ? { ...l, [k]: v } : l)) }));
@@ -233,13 +235,32 @@ export default function Sales() {
         <DialogTitle>{editing ? 'Update Sale' : 'New Sale Invoice'}</DialogTitle>
         <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
           {saveMutation.error && <Alert severity="error">{saveMutation.error.message}</Alert>}
-          <Box sx={{ display: 'flex', gap: 2 }}>
+          <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
             <TextField label="Date" type="date" value={form.date} onChange={set('date')} InputLabelProps={{ shrink: true }} sx={{ width: 180 }} />
-            <TextField label="Invoice Number" placeholder="e.g. INV-1001" value={form.invoiceNumber} onChange={set('invoiceNumber')} fullWidth />
-            <Select value={form.customerId} onChange={set('customerId')} displayEmpty fullWidth>
-              <MenuItem value="" disabled>Customer…</MenuItem>
-              {(customers || []).map((c) => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
-            </Select>
+            <TextField label="Invoice Number" placeholder="e.g. INV-1001" value={form.invoiceNumber} onChange={set('invoiceNumber')} sx={{ flex: 1 }} />
+            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flex: 2 }}>
+              <Autocomplete
+                size="small"
+                options={customers || []}
+                getOptionLabel={(c) => c.name || ''}
+                isOptionEqualToValue={(c, v) => c.id === v.id}
+                value={(customers || []).find((c) => c.id === form.customerId) || null}
+                onChange={(_, v) => setForm((f) => ({ ...f, customerId: v ? v.id : '' }))}
+                renderInput={(params) => <TextField {...params} label="Customer" placeholder="Search customer…" />}
+                sx={{ flexGrow: 1 }}
+              />
+              {canEdit && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                  onClick={() => setNewCustomerOpen(true)}
+                  sx={{ whiteSpace: 'nowrap', height: 40 }}
+                >
+                  New Customer
+                </Button>
+              )}
+            </Box>
           </Box>
 
           <Typography variant="body2" color="text.secondary">Products</Typography>
@@ -307,6 +328,15 @@ export default function Sales() {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <NewPartyDialog
+        open={newCustomerOpen}
+        onClose={() => setNewCustomerOpen(false)}
+        type="customer"
+        onCreated={(newCustomer) => {
+          setForm((f) => ({ ...f, customerId: newCustomer.id }));
+        }}
+      />
     </Box>
   );
 }

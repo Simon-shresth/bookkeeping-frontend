@@ -7,9 +7,10 @@ import {
   ShoppingCartOutlined, AttachMoneyOutlined, BadgeOutlined, PaymentsOutlined,
   CheckCircleOutline, AssessmentOutlined, AdminPanelSettingsOutlined, HistoryOutlined,
   ChevronLeft, ChevronRight, PlaylistAddOutlined, CalendarTodayOutlined,
-  EventRepeatOutlined,
+  EventRepeatOutlined, DarkModeOutlined, LightModeOutlined,
 } from '@mui/icons-material';
 import { useAuth, hasRole } from '../context/AuthContext';
+import { useThemeMode } from '../context/ThemeContext';
 
 const DRAWER_WIDTH = 240;
 const DRAWER_WIDTH_COLLAPSED = 72;
@@ -60,6 +61,7 @@ const NAV_ITEMS = [
 
 export default function Layout() {
   const { profile, signOut } = useAuth();
+  const { mode, toggleTheme } = useThemeMode();
   const [collapsed, setCollapsed] = useState(false);
   const visibleItems = NAV_ITEMS.filter((item) => !item.minRole || hasRole(profile, item.minRole));
   const drawerWidth = collapsed ? DRAWER_WIDTH_COLLAPSED : DRAWER_WIDTH;
@@ -134,6 +136,15 @@ export default function Layout() {
       <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
         <AppBar position="sticky" color="transparent" elevation={0} sx={{ borderBottom: '1px solid', borderColor: 'divider', bgcolor: 'background.paper' }}>
           <Toolbar sx={{ justifyContent: 'flex-end', gap: 1.5 }}>
+            <IconButton
+              size="small"
+              onClick={toggleTheme}
+              color="inherit"
+              title={`Switch to ${mode === 'light' ? 'dark' : 'light'} mode`}
+              sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 1.5, p: 0.75 }}
+            >
+              {mode === 'dark' ? <LightModeOutlined fontSize="small" /> : <DarkModeOutlined fontSize="small" />}
+            </IconButton>
             {profile && (
               <>
                 {profile.company_name && (

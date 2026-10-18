@@ -115,7 +115,9 @@ export default function DayBook() {
   const postMutation = useMutation({
     mutationFn: (body) => api.post('/daybook', body),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['daybook'] });
+      ['daybook', 'journal', 'dashboard', 'report-pl', 'report-bs', 'chart-of-accounts', 'ledger'].forEach((key) => {
+        qc.invalidateQueries({ queryKey: [key] });
+      });
       setDialogOpen(false);
       setLines([emptyLine()]);
     },
@@ -123,7 +125,11 @@ export default function DayBook() {
 
   const deleteMutation = useMutation({
     mutationFn: (id) => api.del(`/daybook/${id}`),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['daybook'] }),
+    onSuccess: () => {
+      ['daybook', 'journal', 'dashboard', 'report-pl', 'report-bs', 'chart-of-accounts', 'ledger'].forEach((key) => {
+        qc.invalidateQueries({ queryKey: [key] });
+      });
+    },
     onError: (err) => alert(err.message),
   });
 
