@@ -23,6 +23,7 @@
   import Salary from './pages/Salary';
   import OpeningBalances from './pages/OpeningBalances';
   import DayBook from './pages/DayBook';
+  import FiscalYears from './pages/FiscalYears';
 
 
   export default function App() {
@@ -46,6 +47,7 @@
           <Route path="ledger" element={<GeneralLedger />} />
           <Route path="opening-balances" element={<OpeningBalances />} />
           <Route path="daybook" element={<DayBook />} />
+          <Route path="fiscal-years" element={<FiscalYears />} />
           <Route path="customers" element={<Customers />} />
           <Route path="suppliers" element={<Suppliers />} />
           <Route path="products" element={<Products />} />

@@ -7,6 +7,7 @@ import {
   ShoppingCartOutlined, AttachMoneyOutlined, BadgeOutlined, PaymentsOutlined,
   CheckCircleOutline, AssessmentOutlined, AdminPanelSettingsOutlined, HistoryOutlined,
   ChevronLeft, ChevronRight, PlaylistAddOutlined, CalendarTodayOutlined,
+  EventRepeatOutlined,
 } from '@mui/icons-material';
 import { useAuth, hasRole } from '../context/AuthContext';
 
@@ -20,6 +21,7 @@ const ICONS = {
   '/ledger': ReceiptLongOutlined,
   '/opening-balances': PlaylistAddOutlined,
   '/daybook': CalendarTodayOutlined,
+  '/fiscal-years': EventRepeatOutlined,
   '/customers': PeopleAltOutlined,
   '/suppliers': LocalShippingOutlined,
   '/products': Inventory2Outlined,
@@ -41,6 +43,7 @@ const NAV_ITEMS = [
   { label: 'General Ledger', path: '/ledger' },
   { label: 'Day Book', path: '/daybook' },
   { label: 'Opening Balances', path: '/opening-balances', minRole: 'accountant' },
+  { label: 'Fiscal Years', path: '/fiscal-years', minRole: 'admin' },
   { label: 'Customers', path: '/customers' },
   { label: 'Suppliers', path: '/suppliers' },
   { label: 'Products', path: '/products' },
