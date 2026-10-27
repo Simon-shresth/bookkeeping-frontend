@@ -18,6 +18,8 @@ export default function GeneralLedger() {
   const [showAllYears, setShowAllYears] = useState(false);
   const [deleteError, setDeleteError] = useState('');
 
+  console.log('GeneralLedger debug:', { canDelete, profile, hasRoleAdmin: hasRole(profile, 'admin') });
+
   const deleteMutation = useMutation({
     mutationFn: (id) => api.del(`/accounts/${id}`),
     onSuccess: () => {
@@ -43,6 +45,8 @@ export default function GeneralLedger() {
     queryFn: () => api.get(`/ledger/${accountId}${qs ? `?${qs}` : ''}`),
     enabled: !!accountId,
   });
+
+  console.log('Ledger data:', { ledger, isSystemAccount: ledger?.account?.is_system, canDelete, showDeleteButton: canDelete && ledger && !ledger?.account?.is_system });
 
   const downloadPdf = async () => {
     try {
