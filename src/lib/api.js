@@ -2,17 +2,24 @@ import { supabase } from './supabase';
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 
-async function request(method, path, body) {
+async function request(method, path, body, opts = {}) {
   const { data: { session } } = await supabase.auth.getSession();
   const token = session?.access_token;
 
+  const headers = {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(opts.headers || {}),
+  };
+
+  // Don't set Content-Type for FormData — browser sets it with boundary
+  if (!(body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
+  }
+
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    headers,
+    body: body instanceof FormData ? body : (body !== undefined ? JSON.stringify(body) : undefined),
   });
 
   if (res.status === 204) return null;
@@ -56,7 +63,7 @@ export function saveBlob(blob, filename) {
 export const api = {
   blob: requestBlob,
   get: (path) => request('GET', path),
-  post: (path, body) => request('POST', path, body),
+  post: (path, body, opts = {}) => request('POST', path, body, opts),
   put: (path, body) => request('PUT', path, body),
   patch: (path, body) => request('PATCH', path, body),
   del: (path) => request('DELETE', path),

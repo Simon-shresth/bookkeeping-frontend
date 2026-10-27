@@ -65,9 +65,7 @@ export default function OpeningBalances() {
     mutationFn: (file) => {
       const form = new FormData();
       form.append('file', file);
-      return api.post('/opening-balances/bulk-import', form, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      return api.post('/opening-balances/bulk-import', form);
     },
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['opening-balances'] });
