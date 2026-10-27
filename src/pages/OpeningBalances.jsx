@@ -1,12 +1,14 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Box, Typography, Button, Table, TableHead, TableRow, TableCell, TableBody,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, Autocomplete,
-  Alert, CircularProgress, IconButton, Chip,
+  Alert, CircularProgress, IconButton, Chip, Link, Snackbar,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
+import DownloadIcon from '@mui/icons-material/Download';
 import { api } from '../lib/api';
 import Money from '../components/Money';
 import { useAuth, hasRole } from '../context/AuthContext';
@@ -36,6 +38,9 @@ export default function OpeningBalances() {
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
+  const [importError, setImportError] = useState(null);
+  const [importSuccess, setImportSuccess] = useState(null);
+  const fileInputRef = useRef(null);
 
   // Exclude accounts that already have an opening balance (unless editing)
   const existingAccountIds = useMemo(() => new Set((balances || []).map((b) => b.account_id)), [balances]);
@@ -56,6 +61,43 @@ export default function OpeningBalances() {
     onError: (err) => alert(err.message),
   });
 
+  const importMutation = useMutation({
+    mutationFn: (file) => {
+      const form = new FormData();
+      form.append('file', file);
+      return api.post('/opening-balances/bulk-import', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+    },
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['opening-balances'] });
+      setImportError(null);
+      setImportSuccess(`Imported ${data.imported} opening balance${data.imported !== 1 ? 's' : ''}.`);
+    },
+    onError: (err) => {
+      setImportSuccess(null);
+      setImportError(err.message);
+    },
+  });
+
+  const handleImport = (event) => {
+    const file = event.target.files[0];
+    if (file) importMutation.mutate(file);
+    event.target.value = '';
+  };
+
+  const handleDownloadTemplate = async () => {
+    const response = await api.get('/opening-balances/template', { responseType: 'blob' });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'opening-balances-template.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
+
   const submit = () => {
     if (!selectedAccount || amount === '') return;
     saveMutation.mutate({ accountId: selectedAccount.id, amount: Number(amount), date });
@@ -74,14 +116,74 @@ export default function OpeningBalances() {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1, flexWrap: 'wrap', gap: 1 }}>
         <Typography variant="h4">Opening Balances</Typography>
-        {canEdit && <Button variant="contained" startIcon={<AddIcon />} onClick={openNew}>Add Balance</Button>}
+        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+          {canEdit && (
+            <>
+              <Button
+                variant="outlined"
+                startIcon={<DownloadIcon />}
+                onClick={handleDownloadTemplate}
+              >
+                Download Template
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={<UploadFileIcon />}
+                onClick={() => fileInputRef.current?.click()}
+                disabled={importMutation.isPending}
+              >
+                {importMutation.isPending ? 'Importing…' : 'Import CSV/Excel'}
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                onChange={handleImport}
+                style={{ display: 'none' }}
+              />
+              <Button variant="contained" startIcon={<AddIcon />} onClick={openNew}>Add Balance</Button>
+            </>
+          )}
+        </Box>
       </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
         Enter starting balances for accounts when migrating to this system mid-year.
         Each balance is posted as a journal entry against Retained Earnings to keep the books balanced.
       </Typography>
+
+      <Alert severity="info" sx={{ mb: 3 }}>
+        <strong>Import format (CSV or Excel):</strong> The file must have a header row with these columns —{' '}
+        <strong>Account Name</strong>, <strong>Heading</strong>, <strong>Amount</strong>, <strong>Date</strong> (YYYY-MM-DD).
+        {' '}Positive amounts = normal balance side; negative = contra.{' '}
+        If an account doesn't exist, it is created automatically under the appropriate category based on its heading.{' '}
+        <Link href="#" onClick={(e) => { e.preventDefault(); handleDownloadTemplate(); }}>Download a template CSV</Link>.
+      </Alert>
+
+      {importError && <Alert severity="error" onClose={() => setImportError(null)} sx={{ mb: 2 }}>{importError}</Alert>}
+      {importSuccess && <Alert severity="success" onClose={() => setImportSuccess(null)} sx={{ mb: 2 }}>{importSuccess}</Alert>}
+
+      <Snackbar
+        open={Boolean(importError || importSuccess)}
+        autoHideDuration={4000}
+        onClose={() => {
+          setImportError(null);
+          setImportSuccess(null);
+        }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={() => {
+            setImportError(null);
+            setImportSuccess(null);
+          }}
+          severity={importError ? 'error' : 'success'}
+          sx={{ width: '100%' }}
+        >
+          {importError || importSuccess}
+        </Alert>
+      </Snackbar>
 
       {balances.length === 0 ? (
         <Typography variant="body2" color="text.secondary">No opening balances set.</Typography>
