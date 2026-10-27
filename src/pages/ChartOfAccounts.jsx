@@ -11,7 +11,7 @@ import { useAuth, hasRole } from '../context/AuthContext';
 
 export default function ChartOfAccounts() {
   const { profile } = useAuth();
-  const canDelete = hasRole(profile, 'accountant');
+  const canDelete = hasRole(profile, 'admin');
   const qc = useQueryClient();
 
   const { data, isLoading, error } = useQuery({ queryKey: ['chart-of-accounts'], queryFn: () => api.get('/accounts') });
