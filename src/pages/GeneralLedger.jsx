@@ -1,16 +1,32 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Box, Typography, Autocomplete, Table, TableHead, TableRow, TableCell, TableBody, CircularProgress, Alert, Chip, TextField, Button, FormControlLabel, Switch } from '@mui/material';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Box, Typography, Autocomplete, Table, TableHead, TableRow, TableCell, TableBody, CircularProgress, Alert, Chip, TextField, Button, FormControlLabel, Switch, IconButton, Tooltip } from '@mui/material';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdfOutlined';
+import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import { api, saveBlob } from '../lib/api';
 import Money from '../components/Money';
+import { useAuth, hasRole } from '../context/AuthContext';
 
 export default function GeneralLedger() {
+  const { profile } = useAuth();
+  const canDelete = hasRole(profile, 'admin');
+  const qc = useQueryClient();
   const { data: accounts, isLoading: loadingAccounts } = useQuery({ queryKey: ['account-options'], queryFn: () => api.get('/accounts/options') });
   const [selectedAccount, setSelectedAccount] = useState(null);
   const [from, setFrom] = useState('');
   const [till, setTill] = useState('');
   const [showAllYears, setShowAllYears] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+
+  const deleteMutation = useMutation({
+    mutationFn: (id) => api.del(`/accounts/${id}`),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['account-options'] });
+      setSelectedAccount(null);
+      setDeleteError('');
+    },
+    onError: (err) => setDeleteError(err.message),
+  });
 
   const accountId = selectedAccount?.id || '';
 
@@ -66,14 +82,33 @@ export default function GeneralLedger() {
           label="Show all years"
         />
         {accountId && (
-          <Button size="small" variant="outlined" startIcon={<PictureAsPdfIcon />} onClick={downloadPdf} disabled={!ledger}>
-            Download PDF
-          </Button>
+          <>
+            <Button size="small" variant="outlined" startIcon={<PictureAsPdfIcon />} onClick={downloadPdf} disabled={!ledger}>
+              Download PDF
+            </Button>
+            {canDelete && ledger && !ledger.account.is_system && (
+              <Tooltip title="Delete account (only if no transactions)">
+                <IconButton
+                  size="small"
+                  color="error"
+                  disabled={deleteMutation.isPending}
+                  onClick={() => {
+                    if (window.confirm(`Delete account "${ledger.account.name}"? This cannot be undone.`)) {
+                      deleteMutation.mutate(ledger.account.id);
+                    }
+                  }}
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
+          </>
         )}
       </Box>
 
-      {!accountId && <Typography variant="body2" color="text.secondary">Choose an account to view its ledger. By default only the current fiscal year is shown — toggle “Show all years” to see prior-year history.</Typography>}
-      {error && <Alert severity="error">{error.message}</Alert>}
+      {!accountId && <Typography variant=”body2” color=”text.secondary”>Choose an account to view its ledger. By default only the current fiscal year is shown — toggle “Show all years” to see prior-year history.</Typography>}
+      {deleteError && <Alert severity=”error” sx={{ mb: 2 }} onClose={() => setDeleteError('')}>{deleteError}</Alert>}
+      {error && <Alert severity=”error”>{error.message}</Alert>}
       {loadingLedger && <CircularProgress size={24} />}
 
       {ledger && (
