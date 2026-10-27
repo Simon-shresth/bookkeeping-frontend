@@ -18,8 +18,6 @@ export default function GeneralLedger() {
   const [showAllYears, setShowAllYears] = useState(false);
   const [deleteError, setDeleteError] = useState('');
 
-  console.log('GeneralLedger debug:', { canDelete, profile, hasRoleAdmin: hasRole(profile, 'admin') });
-
   const deleteMutation = useMutation({
     mutationFn: (id) => api.del(`/accounts/${id}`),
     onSuccess: () => {
@@ -45,8 +43,6 @@ export default function GeneralLedger() {
     queryFn: () => api.get(`/ledger/${accountId}${qs ? `?${qs}` : ''}`),
     enabled: !!accountId,
   });
-
-  console.log('Ledger data:', { ledger, isSystemAccount: ledger?.account?.is_system, canDelete, showDeleteButton: canDelete && ledger && !ledger?.account?.is_system });
 
   const downloadPdf = async () => {
     try {
@@ -75,7 +71,7 @@ export default function GeneralLedger() {
           value={selectedAccount}
           onChange={(_, newValue) => setSelectedAccount(newValue)}
           renderInput={(params) => (
-            <TextField {...params} placeholder="Search or select account…" label="Account" />
+            <TextField {...params} placeholder="Search or select account..." label="Account" />
           )}
           sx={{ minWidth: 320 }}
         />
@@ -110,9 +106,9 @@ export default function GeneralLedger() {
         )}
       </Box>
 
-      {!accountId && <Typography variant=”body2” color=”text.secondary”>Choose an account to view its ledger. By default only the current fiscal year is shown — toggle “Show all years” to see prior-year history.</Typography>}
-      {deleteError && <Alert severity=”error” sx={{ mb: 2 }} onClose={() => setDeleteError('')}>{deleteError}</Alert>}
-      {error && <Alert severity=”error”>{error.message}</Alert>}
+      {!accountId && <Typography variant="body2" color="text.secondary">Choose an account to view its ledger. By default only the current fiscal year is shown — toggle "Show all years" to see prior-year history.</Typography>}
+      {deleteError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setDeleteError('')}>{deleteError}</Alert>}
+      {error && <Alert severity="error">{error.message}</Alert>}
       {loadingLedger && <CircularProgress size={24} />}
 
       {ledger && (
