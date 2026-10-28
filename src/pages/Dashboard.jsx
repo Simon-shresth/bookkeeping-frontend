@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Box, Typography, Paper, Grid, Table, TableHead, TableRow, TableCell, TableBody, Chip, CircularProgress, Alert, Tabs, Tab, Card, CardContent, Divider } from '@mui/material';
+import { Box, Typography, Paper, Grid, Table, TableHead, TableRow, TableCell, TableBody, Chip, CircularProgress, Alert, Tabs, Tab, Card, CardContent, Divider, Button } from '@mui/material';
 import { api } from '../lib/api';
 import Money from '../components/Money';
 
@@ -32,6 +32,7 @@ function StatCard({ label, value, tone, subtitle }) {
 }
 
 function KeyFiguresTable({ figures, isMonthly, fyLabel }) {
+  const [visibleMonths, setVisibleMonths] = useState(3); // show last 3 months by default
   const metrics = [
     { key: 'cashSales', label: 'Only Cash Sales', tone: 'good' },
     { key: 'partialCashSales', label: 'Partial Cash Sales', tone: 'good' },
@@ -46,36 +47,35 @@ function KeyFiguresTable({ figures, isMonthly, fyLabel }) {
   ];
 
   if (isMonthly) {
-    const months = Object.keys(figures).sort().reverse(); // Latest first
+    const allMonths = Object.keys(figures).sort().reverse(); // Latest first
+    const shownMonths = allMonths.slice(0, visibleMonths);
     return (
       <Box>
-        <Typography variant="h6" sx={{ mb: 1 }}>
-          Monthly Key Figures (B.S. Month)
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+          <Typography variant="h6">Monthly Key Figures (by B.S. Month)</Typography>
+          <Button size="small" variant="outlined" onClick={() => setVisibleMonths(v => Math.min(v + 3, allMonths.length))} disabled={visibleMonths >= allMonths.length}>
+            Show Previous Months ({visibleMonths} of {allMonths.length})
+          </Button>
+        </Box>
         <Table size="small" sx={{ mb: 4, minWidth: 1200 }}>
           <TableHead>
             <TableRow>
               <TableCell>Metric</TableCell>
-              {months.map(m => <TableCell key={m} align="right">{formatMonthKey(m)}</TableCell>)}
-              <TableCell align="right"><strong>Total</strong></TableCell>
+              {shownMonths.map(m => <TableCell key={m} align="right">{formatMonthKey(m)}</TableCell>)}
             </TableRow>
           </TableHead>
           <TableBody>
             {metrics.map((metric) => {
-              const values = months.map(m => figures[m]?.[metric.key] || 0);
-              const total = values.reduce((a, b) => a + (Number(b) || 0), 0);
+              const values = shownMonths.map(m => figures[m]?.[metric.key] || 0);
               const tone = metric.tone === 'good' ? 'primary.main' : metric.tone === 'bad' ? 'error.main' : undefined;
               return (
                 <TableRow key={metric.key} sx={{ '&:nth-of-type(odd)': { bgcolor: 'action.hover' } }}>
                   <TableCell sx={{ fontWeight: 500 }}>{metric.label}</TableCell>
-                  {values.map(v => (
-                    <TableCell key={v} align="right">
+                  {values.map((v, i) => (
+                    <TableCell key={i} align="right">
                       <Money value={v} color={tone} />
                     </TableCell>
                   ))}
-                  <TableCell align="right">
-                    <Money value={total} color={tone} bold />
-                  </TableCell>
                 </TableRow>
               );
             })}
