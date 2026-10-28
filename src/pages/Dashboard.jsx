@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Box, Typography, Paper, Grid, Table, TableHead, TableRow, TableCell, TableBody, Chip, CircularProgress, Alert, Tabs, Tab, Card, CardContent, Divider, Button } from '@mui/material';
 import { api } from '../lib/api';
@@ -32,7 +32,8 @@ function StatCard({ label, value, tone, subtitle }) {
 }
 
 function KeyFiguresTable({ figures, isMonthly, fyLabel }) {
-  const [visibleMonths, setVisibleMonths] = useState(3); // show last 3 months by default
+  const [visibleMonths, setVisibleMonths] = useState(3);
+  useEffect(() => { setVisibleMonths(3); }, [isMonthly]);
   const metrics = [
     { key: 'cashSales', label: 'Only Cash Sales', tone: 'good' },
     { key: 'partialCashSales', label: 'Partial Cash Sales', tone: 'good' },
@@ -157,9 +158,9 @@ export default function Dashboard() {
           </Tabs>
           <Divider sx={{ mb: 2 }} />
           {tab === 'monthly' ? (
-            <KeyFiguresTable figures={monthly} isMonthly />
+            <KeyFiguresTable key="monthly" figures={monthly} isMonthly />
           ) : (
-            <KeyFiguresTable figures={yearly} isMonthly={false} fyLabel={fyLabel} />
+            <KeyFiguresTable key="yearly" figures={yearly} isMonthly={false} fyLabel={fyLabel} />
           )}
         </CardContent>
       </Card>
