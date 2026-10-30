@@ -37,39 +37,57 @@ function KeyFiguresTable({ figures, isMonthly, fyLabel }) {
 
   if (isMonthly) {
     const allMonths = Object.keys(figures).sort().reverse(); // Latest first
+    console.log('DEBUG KeyFiguresTable figures:', figures);
+    console.log('DEBUG KeyFiguresTable allMonths:', allMonths);
     const shownMonths = allMonths.slice(0, visibleMonths);
+    console.log('DEBUG KeyFiguresTable shownMonths:', shownMonths);
     return (
       <Box>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 2, mb: 2 }}>
           <Typography variant="h6">Monthly Key Figures (by B.S. Month)</Typography>
-          <Button size="small" variant="outlined" onClick={() => setVisibleMonths(v => Math.min(v + 3, allMonths.length))} disabled={visibleMonths >= allMonths.length}>
-            Show Previous Months ({visibleMonths} of {allMonths.length})
-          </Button>
+          {allMonths.length > 0 && (
+            <Button
+              size="small"
+              variant="outlined"
+              onClick={() => setVisibleMonths(v => Math.min(v + 3, allMonths.length))}
+              disabled={visibleMonths >= allMonths.length}
+            >
+              Show Previous Months ({Math.min(visibleMonths, allMonths.length)} of {allMonths.length})
+            </Button>
+          )}
         </Box>
-        <Table size="small" sx={{ mb: 4, minWidth: 1200 }}>
-          <TableHead>
-            <TableRow>
-              <TableCell>Metric</TableCell>
-              {shownMonths.map(m => <TableCell key={m} align="right">{formatMonthKey(m)}</TableCell>)}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {metrics.map((metric) => {
-              const values = shownMonths.map(m => figures[m]?.[metric.key] || 0);
-              const tone = metric.tone === 'good' ? 'primary.main' : metric.tone === 'bad' ? 'error.main' : undefined;
-              return (
-                <TableRow key={metric.key} sx={{ '&:nth-of-type(odd)': { bgcolor: 'action.hover' } }}>
-                  <TableCell sx={{ fontWeight: 500 }}>{metric.label}</TableCell>
-                  {values.map((v, i) => (
-                    <TableCell key={i} align="right">
-                      <Money value={v} color={tone} />
+        <Box sx={{ width: '100%', overflowX: 'auto', border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+          <Table size="small" sx={{ minWidth: Math.max(400, 200 + (shownMonths.length * 150)) }}>
+            <TableHead>
+              <TableRow sx={{ bgcolor: 'action.selected' }}>
+                <TableCell sx={{ fontWeight: 'bold', width: 200 }}>Metric</TableCell>
+                {shownMonths.map(m => (
+                  <TableCell key={m} align="right" sx={{ fontWeight: 'bold', borderLeft: '1px solid', borderColor: 'divider' }}>
+                    {formatMonthKey(m)}
+                  </TableCell>
+                ))}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {metrics.map((metric) => {
+                const values = shownMonths.map(m => figures[m]?.[metric.key] || 0);
+                const tone = metric.tone === 'good' ? 'primary.main' : metric.tone === 'bad' ? 'error.main' : undefined;
+                return (
+                  <TableRow key={metric.key} sx={{ '&:hover': { bgcolor: 'action.hover' } }}>
+                    <TableCell sx={{ fontWeight: 500, borderRight: '1px solid', borderColor: 'divider' }}>
+                      {metric.label}
                     </TableCell>
-                  ))}
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+                    {values.map((v, i) => (
+                      <TableCell key={i} align="right" sx={{ borderLeft: '1px solid', borderColor: 'divider' }}>
+                        <Money value={v} color={tone} />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </Box>
       </Box>
     );
   }
