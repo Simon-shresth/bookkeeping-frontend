@@ -153,8 +153,8 @@ export default function Dashboard() {
       <Card sx={{ mb: 4 }}>
         <CardContent>
           <Tabs value={tab} onChange={(_, v) => setTab(v)} aria-label="Key figures period" sx={{ mb: 2 }}>
-            <Tab label="Monthly" />
-            <Tab label="Yearly" />
+            <Tab label="Monthly" value="monthly" />
+            <Tab label="Yearly" value="yearly" />
           </Tabs>
           <Divider sx={{ mb: 2 }} />
           {tab === 'monthly' ? (
