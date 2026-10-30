@@ -1,13 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Box, Typography, Paper, Grid, Table, TableHead, TableRow, TableCell, TableBody, Chip, CircularProgress, Alert, Tabs, Tab, Card, CardContent, Divider, Button } from '@mui/material';
+import { Box, Typography, Table, TableHead, TableRow, TableCell, TableBody, Chip, CircularProgress, Alert, Tabs, Tab, Card, CardContent, Divider, Button } from '@mui/material';
 import { api } from '../lib/api';
 import Money from '../components/Money';
-
-function pct(numerator, denominator) {
-  if (!denominator || denominator === 0) return null;
-  return ((numerator / denominator) * 100).toFixed(1);
-}
 
 function formatMonthKey(key) {
   if (!key) return '';
@@ -16,24 +11,17 @@ function formatMonthKey(key) {
   return `${months[parseInt(m) - 1]} ${y}`;
 }
 
-function StatCard({ label, value, tone, subtitle }) {
-  const color = tone === 'good' ? 'primary.main' : tone === 'bad' ? 'error.main' : undefined;
-  return (
-    <Paper variant="outlined" sx={{ p: 2, minWidth: 160, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'spaceBetween' }}>
-      <Typography variant="caption" color="text.secondary">{label}</Typography>
-      <Typography variant="h6" sx={{ mt: 0.5 }}><Money value={value} color={color} /></Typography>
-      {subtitle && (
-        <Typography variant="caption" color={tone === 'bad' ? 'error.main' : 'text.secondary'}>
-          {subtitle}
-        </Typography>
-      )}
-    </Paper>
-  );
-}
-
 function KeyFiguresTable({ figures, isMonthly, fyLabel }) {
-  const [visibleMonths, setVisibleMonths] = useState(3);
-  useEffect(() => { setVisibleMonths(3); }, [isMonthly]);
+  const [visibleMonths, setVisibleMonths] = useState(() => {
+    // Will be updated in effect once we know allMonths length
+    return 3;
+  });
+  useEffect(() => {
+    if (isMonthly) {
+      const allMonths = Object.keys(figures).sort().reverse();
+      setVisibleMonths(Math.min(3, allMonths.length));
+    }
+  }, [isMonthly, figures]);
   const metrics = [
     { key: 'cashSales', label: 'Only Cash Sales', tone: 'good' },
     { key: 'partialCashSales', label: 'Partial Cash Sales', tone: 'good' },
@@ -126,28 +114,12 @@ export default function Dashboard() {
   const { totals, lowStock, recentTransactions, loanAgeing = [], keyFigures = {} } = data;
   const { monthly = {}, yearly = {} } = keyFigures;
 
-  const grossProfit = totals.revenue - totals.cogs;
-  const grossMarginPct = pct(grossProfit, totals.revenue);
-  const expensePct = pct(totals.expenseTotal, totals.revenue);
-  const netProfitPct = pct(totals.profit, totals.revenue);
-
   // Get fiscal year label
   const fyLabel = totals.fiscalYear ? `${totals.fiscalYear.start_date} to ${totals.fiscalYear.end_date}` : null;
 
   return (
     <Box>
       <Typography variant="h4" sx={{ mb: 3 }}>Dashboard</Typography>
-
-      {/* Summary Cards (top row) */}
-      <Grid container spacing={2} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}><StatCard label="Revenue" value={totals.revenue} tone="good" /></Grid>
-        <Grid item xs={12} sm={6} md={3}><StatCard label="Cost of Goods Sold" value={totals.cogs} tone="bad" subtitle={pct(totals.cogs, totals.revenue) != null ? `${pct(totals.cogs, totals.revenue)}% of revenue` : null} /></Grid>
-        <Grid item xs={12} sm={6} md={3}><StatCard label="Gross Profit" value={grossProfit} tone={grossProfit >= 0 ? 'good' : 'bad'} subtitle={grossMarginPct != null ? `${grossMarginPct}% margin` : null} /></Grid>
-        <Grid item xs={12} sm={6} md={3}><StatCard label="Expenses" value={totals.expenseTotal} tone="bad" subtitle={expensePct != null ? `${expensePct}% of revenue` : null} /></Grid>
-        <Grid item xs={12} sm={6} md={3}><StatCard label="Net Profit" value={totals.profit} tone={totals.profit >= 0 ? 'good' : 'bad'} subtitle={netProfitPct != null ? `${netProfitPct}% margin` : null} /></Grid>
-        <Grid item xs={12} sm={6} md={3}><StatCard label="Accounts Receivable" value={totals.ar} /></Grid>
-        <Grid item xs={12} sm={6} md={3}><StatCard label="Accounts Payable" value={totals.ap} /></Grid>
-      </Grid>
 
       {/* Tab Switcher for Key Figures */}
       <Card sx={{ mb: 4 }}>
