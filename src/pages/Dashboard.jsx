@@ -12,16 +12,7 @@ function formatMonthKey(key) {
 }
 
 function KeyFiguresTable({ figures, isMonthly, fyLabel }) {
-  const [visibleMonths, setVisibleMonths] = useState(() => {
-    // Will be updated in effect once we know allMonths length
-    return 3;
-  });
-  useEffect(() => {
-    if (isMonthly) {
-      const allMonths = Object.keys(figures).sort().reverse();
-      setVisibleMonths(Math.min(3, allMonths.length));
-    }
-  }, [isMonthly, figures]);
+  const [visibleMonths, setVisibleMonths] = useState(3);
   const metrics = [
     { key: 'cashSales', label: 'Only Cash Sales', tone: 'good' },
     { key: 'partialCashSales', label: 'Partial Cash Sales', tone: 'good' },
@@ -37,10 +28,7 @@ function KeyFiguresTable({ figures, isMonthly, fyLabel }) {
 
   if (isMonthly) {
     const allMonths = Object.keys(figures).sort().reverse(); // Latest first
-    console.log('DEBUG KeyFiguresTable figures:', figures);
-    console.log('DEBUG KeyFiguresTable allMonths:', allMonths);
     const shownMonths = allMonths.slice(0, visibleMonths);
-    console.log('DEBUG KeyFiguresTable shownMonths:', shownMonths);
     return (
       <Box>
         <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 2, mb: 2 }}>
