@@ -24,7 +24,7 @@ function KeyFiguresTable({ figures, isMonthly, fyLabel }) {
     { key: 'grossProfit', label: 'Gross Profit', tone: 'good' },
     { key: 'netProfit', label: 'Net Profit', tone: 'good' },
     { key: 'costOfGoodsSold', label: 'Cost of Goods Sold', tone: 'bad' },
-  ];
+  ].filter(m => !isMonthly || !['grossProfit', 'netProfit', 'costOfGoodsSold'].includes(m.key));
 
   if (isMonthly) {
     const allMonths = Object.keys(figures).sort().reverse(); // Latest first
