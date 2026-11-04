@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Box, Typography, Autocomplete, Table, TableHead, TableRow, TableCell, TableBody, CircularProgress, Alert, Chip, TextField, Button, FormControlLabel, Switch, IconButton, Tooltip } from '@mui/material';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdfOutlined';
+import TableChartIcon from '@mui/icons-material/TableChartOutlined';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
 import { api, saveBlob } from '../lib/api';
 import Money from '../components/Money';
@@ -48,6 +49,23 @@ export default function GeneralLedger() {
     try {
       const blob = await api.blob(`/ledger/${accountId}/pdf${qs ? `?${qs}` : ''}`);
       saveBlob(blob, `ledger-${ledger.account.name.replace(/[^A-Za-z0-9._-]/g, '_')}.pdf`);
+    } catch (err) { alert(err.message); }
+  };
+
+  const downloadXlsx = async (targetAccountId) => {
+    try {
+      const exportQs = new URLSearchParams();
+      if (targetAccountId) exportQs.set('accountId', targetAccountId);
+      if (from) exportQs.set('from', from);
+      if (till) exportQs.set('till', till);
+      if (showAllYears && !from) exportQs.set('allYears', 'true');
+      const eqs = exportQs.toString();
+
+      const blob = await api.blob(`/ledger/export${eqs ? `?${eqs}` : ''}`);
+      const filename = targetAccountId && targetAccountId !== 'all' && ledger
+        ? `ledger-${ledger.account.name.replace(/[^A-Za-z0-9._-]/g, '_')}.xlsx`
+        : 'general-ledger-all-accounts.xlsx';
+      saveBlob(blob, filename);
     } catch (err) { alert(err.message); }
   };
 
