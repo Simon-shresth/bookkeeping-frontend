@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Box, Typography, Autocomplete, Table, TableHead, TableRow, TableCell, TableBody, CircularProgress, Alert, Chip, TextField, Button, FormControlLabel, Switch, IconButton, Tooltip } from '@mui/material';
+import { Box, Typography, Autocomplete, Table, TableHead, TableRow, TableCell, TableBody, CircularProgress, Alert, Chip, TextField, Button, FormControlLabel, Switch, IconButton, Tooltip, Checkbox } from '@mui/material';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdfOutlined';
 import TableChartIcon from '@mui/icons-material/TableChartOutlined';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
+import PrintIcon from '@mui/icons-material/PrintOutlined';
 import { api, saveBlob } from '../lib/api';
 import Money from '../components/Money';
 import { useAuth, hasRole } from '../context/AuthContext';
@@ -14,10 +15,12 @@ export default function GeneralLedger() {
   const qc = useQueryClient();
   const { data: accounts, isLoading: loadingAccounts } = useQuery({ queryKey: ['account-options'], queryFn: () => api.get('/accounts/options') });
   const [selectedAccount, setSelectedAccount] = useState(null);
+  const [selectedAccountIds, setSelectedAccountIds] = useState([]);
   const [from, setFrom] = useState('');
   const [till, setTill] = useState('');
   const [showAllYears, setShowAllYears] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const [bulkActionError, setBulkActionError] = useState('');
 
   const deleteMutation = useMutation({
     mutationFn: (id) => api.del(`/accounts/${id}`),
@@ -31,8 +34,6 @@ export default function GeneralLedger() {
 
   const accountId = selectedAccount?.id || '';
 
-  // Build query string. When the user hasn't set a custom from/till, we send
-  // allYears=true/false so the backend can default to the current fiscal year.
   const query = new URLSearchParams();
   if (from) query.set('from', from);
   if (till) query.set('till', till);
@@ -45,10 +46,24 @@ export default function GeneralLedger() {
     enabled: !!accountId,
   });
 
-  const downloadPdf = async () => {
+  const downloadPdf = async (targetAccountId) => {
     try {
-      const blob = await api.blob(`/ledger/${accountId}/pdf${qs ? `?${qs}` : ''}`);
-      saveBlob(blob, `ledger-${ledger.account.name.replace(/[^A-Za-z0-9._-]/g, '_')}.pdf`);
+      const id = targetAccountId || accountId;
+      if (!id) return;
+      const blob = await api.blob(`/ledger/${id}/pdf${qs ? `?${qs}` : ''}`);
+      // Find account name if available in options or ledger
+      const acc = accounts?.find(a => a.id === id);
+      const accName = (acc?.name || (ledger && ledger.account.id === id ? ledger.account.name : 'account')).replace(/[^A-Za-z0-9._-]/g, '_');
+
+      // We also check for invoice number/reference if single ledger
+      let invoicePrefix = '';
+      if (ledger && ledger.account.id === id) {
+        const invoiceRef = ledger.entries.find(e => e.reference)?.reference || '';
+        if (invoiceRef) {
+          invoicePrefix = invoiceRef.replace(/[^A-Za-z0-9._-]/g, '_') + '-';
+        }
+      }
+      saveBlob(blob, `${invoicePrefix}${accName}.pdf`);
     } catch (err) { alert(err.message); }
   };
 
@@ -62,11 +77,65 @@ export default function GeneralLedger() {
       const eqs = exportQs.toString();
 
       const blob = await api.blob(`/ledger/export${eqs ? `?${eqs}` : ''}`);
-      const filename = targetAccountId && targetAccountId !== 'all' && ledger
-        ? `ledger-${ledger.account.name.replace(/[^A-Za-z0-9._-]/g, '_')}.xlsx`
+      const acc = accounts?.find(a => a.id === targetAccountId);
+      const filename = targetAccountId && targetAccountId !== 'all' && acc
+        ? `ledger-${acc.name.replace(/[^A-Za-z0-9._-]/g, '_')}.xlsx`
         : 'general-ledger-all-accounts.xlsx';
       saveBlob(blob, filename);
     } catch (err) { alert(err.message); }
+  };
+
+  // Bulk operations handlers
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedAccountIds((accounts || []).map(a => a.id));
+    } else {
+      setSelectedAccountIds([]);
+    }
+  };
+
+  const handleToggleSelect = (id) => {
+    setSelectedAccountIds(prev =>
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleBulkDelete = async () => {
+    if (!window.confirm(`Delete ${selectedAccountIds.length} selected accounts? Only accounts with no transactions will be deleted.`)) return;
+    setBulkActionError('');
+    let failedCount = 0;
+    for (const id of selectedAccountIds) {
+      try {
+        await api.del(`/accounts/${id}`);
+      } catch (err) {
+        failedCount++;
+      }
+    }
+    qc.invalidateQueries({ queryKey: ['account-options'] });
+    qc.invalidateQueries({ queryKey: ['chart-of-accounts'] });
+    setSelectedAccountIds([]);
+    if (failedCount > 0) {
+      setBulkActionError(`Some accounts could not be deleted because they have transactions or are system accounts.`);
+    }
+  };
+
+  const handleBulkExportXlsx = async () => {
+    try {
+      const exportQs = new URLSearchParams();
+      if (from) exportQs.set('from', from);
+      if (till) exportQs.set('till', till);
+      if (showAllYears && !from) exportQs.set('allYears', 'true');
+      const eqs = exportQs.toString();
+
+      const blob = await api.blob(`/ledger/export${eqs ? `?${eqs}` : ''}`);
+      saveBlob(blob, 'general-ledger-bulk-export.xlsx');
+    } catch (err) { alert(err.message); }
+  };
+
+  const handleBulkPrintPdf = async () => {
+    for (const id of selectedAccountIds) {
+      await downloadPdf(id);
+    }
   };
 
   if (loadingAccounts) return <CircularProgress size={24} />;
@@ -75,9 +144,77 @@ export default function GeneralLedger() {
     ? `${from || 'start'} to ${till || 'present'}`
     : (showAllYears ? 'All years' : 'Current fiscal year');
 
+  const allSelected = accounts && accounts.length > 0 && selectedAccountIds.length === accounts.length;
+  const someSelected = selectedAccountIds.length > 0 && !allSelected;
+
   return (
     <Box>
-      <Typography variant="h4" sx={{ mb: 2 }}>General Ledger</Typography>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+        <Typography variant="h4">General Ledger</Typography>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<TableChartIcon />}
+            onClick={() => downloadXlsx('all')}
+          >
+            Export All (XLSX)
+          </Button>
+          {accountId && (
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<TableChartIcon />}
+              onClick={() => downloadXlsx(accountId)}
+            >
+              Export Account (XLSX)
+            </Button>
+          )}
+        </Box>
+      </Box>
+
+      {/* Bulk Action Toolbar when accounts are selected */}
+      {selectedAccountIds.length > 0 && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 1.5, mb: 2, bgcolor: 'action.selected', borderRadius: 1 }}>
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            {selectedAccountIds.length} account{selectedAccountIds.length === 1 ? '' : 's'} selected
+          </Typography>
+          <Button
+            size="small"
+            variant="contained"
+            color="primary"
+            startIcon={<PictureAsPdfIcon />}
+            onClick={handleBulkPrintPdf}
+          >
+            Download PDFs
+          </Button>
+          <Button
+            size="small"
+            variant="contained"
+            color="secondary"
+            startIcon={<TableChartIcon />}
+            onClick={handleBulkExportXlsx}
+          >
+            Export Selected (XLSX)
+          </Button>
+          {canDelete && (
+            <Button
+              size="small"
+              variant="outlined"
+              color="error"
+              startIcon={<DeleteIcon />}
+              onClick={handleBulkDelete}
+            >
+              Delete Selected
+            </Button>
+          )}
+          <Button size="small" onClick={() => setSelectedAccountIds([])}>
+            Deselect All
+          </Button>
+        </Box>
+      )}
+
+      {bulkActionError && <Alert severity="warning" sx={{ mb: 2 }} onClose={() => setBulkActionError('')}>{bulkActionError}</Alert>}
 
       <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap', mb: 3 }}>
         <Autocomplete
@@ -101,7 +238,7 @@ export default function GeneralLedger() {
         />
         {accountId && (
           <>
-            <Button size="small" variant="outlined" startIcon={<PictureAsPdfIcon />} onClick={downloadPdf} disabled={!ledger}>
+            <Button size="small" variant="outlined" startIcon={<PictureAsPdfIcon />} onClick={() => downloadPdf(accountId)} disabled={!ledger}>
               Download PDF
             </Button>
             {canDelete && ledger && !ledger.account.is_system && (
@@ -124,7 +261,68 @@ export default function GeneralLedger() {
         )}
       </Box>
 
-      {!accountId && <Typography variant="body2" color="text.secondary">Choose an account to view its ledger. By default only the current fiscal year is shown — toggle "Show all years" to see prior-year history.</Typography>}
+      {/* Account selection list table with circular checkboxes */}
+      <Typography variant="h6" sx={{ mb: 1 }}>Account Selection & Quick List</Typography>
+      <Box sx={{ maxHeight: 240, overflowY: 'auto', border: '1px solid', borderColor: 'divider', borderRadius: 1, mb: 3 }}>
+        <Table size="small" stickyHeader>
+          <TableHead>
+            <TableRow>
+              <TableCell padding="checkbox">
+                <Checkbox
+                  size="small"
+                  checked={allSelected}
+                  indeterminate={someSelected}
+                  onChange={handleSelectAll}
+                  inputProps={{ 'aria-label': 'select all accounts' }}
+                />
+              </TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Account Name</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Category</TableCell>
+              <TableCell sx={{ fontWeight: 'bold' }}>Heading</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 'bold' }}>Action</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {(accounts || []).map((acc) => {
+              const isSelected = selectedAccountIds.includes(acc.id);
+              return (
+                <TableRow key={acc.id} hover selected={isSelected}>
+                  <TableCell padding="checkbox">
+                    <Checkbox
+                      size="small"
+                      checked={isSelected}
+                      onChange={() => handleToggleSelect(acc.id)}
+                      inputProps={{ 'aria-labelledby': `account-checkbox-${acc.id}` }}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Typography
+                      variant="body2"
+                      sx={{ cursor: 'pointer', color: selectedAccount?.id === acc.id ? 'primary.main' : 'text.primary', fontWeight: selectedAccount?.id === acc.id ? 600 : 400 }}
+                      onClick={() => setSelectedAccount(acc)}
+                    >
+                      {acc.name}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>{acc.category}</TableCell>
+                  <TableCell>{acc.heading}</TableCell>
+                  <TableCell align="right">
+                    <Button
+                      size="small"
+                      variant={selectedAccount?.id === acc.id ? 'contained' : 'text'}
+                      onClick={() => setSelectedAccount(acc)}
+                    >
+                      View Ledger
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+          </TableBody>
+        </Table>
+      </Box>
+
+      {!accountId && <Typography variant="body2" color="text.secondary">Choose an account above or select multiple accounts using checkboxes for bulk actions.</Typography>}
       {deleteError && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setDeleteError('')}>{deleteError}</Alert>}
       {error && <Alert severity="error">{error.message}</Alert>}
       {loadingLedger && <CircularProgress size={24} />}
