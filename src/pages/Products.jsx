@@ -29,6 +29,7 @@ export default function Products() {
   const qc = useQueryClient();
   const { data, isLoading, error } = useQuery({ queryKey: ['products'], queryFn: () => api.get('/products') });
 
+  const [open, setOpen] = useState(false);
   const [movementsProduct, setMovementsProduct] = useState(null);
   const [movementsData, setMovementsData] = useState(null);
   const [loadingMovements, setLoadingMovements] = useState(false);
