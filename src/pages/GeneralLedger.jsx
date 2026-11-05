@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Box, Typography, Autocomplete, Table, TableHead, TableRow, TableCell, TableBody, CircularProgress, Alert, Chip, TextField, Button, FormControlLabel, Switch, IconButton, Tooltip, Checkbox } from '@mui/material';
 import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdfOutlined';
 import TableChartIcon from '@mui/icons-material/TableChartOutlined';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
+import UploadFileIcon from '@mui/icons-material/UploadFileOutlined';
 import PrintIcon from '@mui/icons-material/PrintOutlined';
 import { api, saveBlob } from '../lib/api';
 import Money from '../components/Money';
@@ -21,6 +22,8 @@ export default function GeneralLedger() {
   const [showAllYears, setShowAllYears] = useState(false);
   const [deleteError, setDeleteError] = useState('');
   const [bulkActionError, setBulkActionError] = useState('');
+  const [importStatus, setImportStatus] = useState('');
+  const fileInputRef = useRef(null);
 
   const deleteMutation = useMutation({
     mutationFn: (id) => api.del(`/accounts/${id}`),
@@ -51,11 +54,9 @@ export default function GeneralLedger() {
       const id = targetAccountId || accountId;
       if (!id) return;
       const blob = await api.blob(`/ledger/${id}/pdf${qs ? `?${qs}` : ''}`);
-      // Find account name if available in options or ledger
       const acc = accounts?.find(a => a.id === id);
       const accName = (acc?.name || (ledger && ledger.account.id === id ? ledger.account.name : 'account')).replace(/[^A-Za-z0-9._-]/g, '_');
 
-      // We also check for invoice number/reference if single ledger
       let invoicePrefix = '';
       if (ledger && ledger.account.id === id) {
         const invoiceRef = ledger.entries.find(e => e.reference)?.reference || '';
@@ -85,7 +86,27 @@ export default function GeneralLedger() {
     } catch (err) { alert(err.message); }
   };
 
-  // Bulk operations handlers
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      setImportStatus('Importing entries...');
+      const res = await api.post('/ledger/import', formData);
+      setImportStatus(`Successfully imported ${res.importedCount} entries from Excel! Accounts created automatically if missing.`);
+      qc.invalidateQueries({ queryKey: ['account-options'] });
+      qc.invalidateQueries({ queryKey: ['chart-of-accounts'] });
+      if (accountId) {
+        qc.invalidateQueries({ queryKey: ['ledger', accountId] });
+      }
+    } catch (err) {
+      setImportStatus(`Import failed: ${err.message}`);
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   const handleSelectAll = (e) => {
     if (e.target.checked) {
       setSelectedAccountIds((accounts || []).map(a => a.id));
@@ -152,6 +173,21 @@ export default function GeneralLedger() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h4">General Ledger</Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
+          <input
+            type="file"
+            accept=".xlsx, .xls"
+            style={{ display: 'none' }}
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+          />
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<UploadFileIcon />}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            Import XLSX
+          </Button>
           <Button
             variant="outlined"
             size="small"
@@ -172,6 +208,8 @@ export default function GeneralLedger() {
           )}
         </Box>
       </Box>
+
+      {importStatus && <Alert severity="info" sx={{ mb: 2 }} onClose={() => setImportStatus('')}>{importStatus}</Alert>}
 
       {/* Bulk Action Toolbar when accounts are selected */}
       {selectedAccountIds.length > 0 && (
