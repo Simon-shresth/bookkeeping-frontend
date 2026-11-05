@@ -29,7 +29,23 @@ export default function Products() {
   const qc = useQueryClient();
   const { data, isLoading, error } = useQuery({ queryKey: ['products'], queryFn: () => api.get('/products') });
 
-  const [open, setOpen] = useState(false);
+  const [movementsProduct, setMovementsProduct] = useState(null);
+  const [movementsData, setMovementsData] = useState(null);
+  const [loadingMovements, setLoadingMovements] = useState(false);
+
+  const handleOpenMovements = async (p) => {
+    setMovementsProduct(p);
+    setLoadingMovements(true);
+    setMovementsData(null);
+    try {
+      const res = await api.get(`/products/${p.id}/movements`);
+      setMovementsData(res);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setLoadingMovements(false);
+    }
+  };
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [customUnit, setCustomUnit] = useState(false);
@@ -110,6 +126,7 @@ export default function Products() {
                   <TableCell align="right"><Money value={p.sell_price} /></TableCell>
                   <TableCell align="right">
                     {low ? <Chip label={`${p.stock} ${p.unit}`} size="small" color="error" variant="outlined" /> : `${p.stock} ${p.unit}`}
+                    <Button size="small" sx={{ ml: 1 }} onClick={() => handleOpenMovements(p)}>Stock Book</Button>
                   </TableCell>
                   <TableCell align="right">{p.min_stock} {p.unit}</TableCell>
                   {canEdit && (
@@ -173,6 +190,84 @@ export default function Products() {
         <DialogActions>
           <Button onClick={() => setOpen(false)}>Cancel</Button>
           <Button variant="contained" disabled={!canSubmit || saveMutation.isPending} onClick={() => saveMutation.mutate()}>Save</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Stock Book / Movements Dialog */}
+      <Dialog open={!!movementsProduct} onClose={() => setMovementsProduct(null)} fullWidth maxWidth="md">
+        <DialogTitle>
+          Stock Book & Movements: {movementsProduct?.name}
+        </DialogTitle>
+        <DialogContent dividers>
+          {loadingMovements ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}><CircularProgress size={24} /></Box>
+          ) : !movementsData ? (
+            <Typography>Failed to load movements.</Typography>
+          ) : (
+            <Box>
+              <Typography variant="subtitle2" sx={{ mb: 2 }}>
+                Current Stock: <strong>{movementsData.product.stock} {movementsData.product.unit}</strong>
+              </Typography>
+              <Typography variant="h6" sx={{ mb: 1, fontSize: 16 }}>Inflows (Purchases)</Typography>
+              <Table size="small" sx={{ mb: 3 }}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Date</TableCell>
+                    <TableCell>Bill / Invoice #</TableCell>
+                    <TableCell>Supplier</TableCell>
+                    <TableCell align="right">Quantity Added</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {movementsData.purchaseMovements.length === 0 ? (
+                    <TableRow><TableCell colSpan={4} align="center" sx={{ fontStyle: 'italic', opacity: 0.6 }}>No purchase inflows recorded.</TableCell></TableRow>
+                  ) : (
+                    movementsData.purchaseMovements.map((m, i) => (
+                      <TableRow key={i}>
+                        <TableCell>{m.date}</TableCell>
+                        <TableCell>{m.bill_number || '—'}</TableCell>
+                        <TableCell>{m.party_name}</TableCell>
+                        <TableCell align="right">+{m.quantity_added} {movementsData.product.unit}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+
+              <Typography variant="h6" sx={{ mb: 1, fontSize: 16 }}>Outflows & Reductions (Sales)</Typography>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Date</TableCell>
+                    <TableCell>Bill / Invoice #</TableCell>
+                    <TableCell>Customer</TableCell>
+                    <TableCell align="right">Quantity Reduced</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {movementsData.salesMovements.length === 0 ? (
+                    <TableRow><TableCell colSpan={4} align="center" sx={{ fontStyle: 'italic', opacity: 0.6 }}>No sales reductions recorded.</TableCell></TableRow>
+                  ) : (
+                    movementsData.salesMovements.map((m, i) => (
+                      <TableRow key={i}>
+                        <TableCell>{m.date}</TableCell>
+                        <TableCell>
+                          {m.bill_number ? <Chip label={m.bill_number} size="small" variant="outlined" /> : '—'}
+                        </TableCell>
+                        <TableCell>{m.party_name}</TableCell>
+                        <TableCell align="right" sx={{ color: 'error.main', fontWeight: 600 }}>
+                          -{m.quantity_reduced} {movementsData.product.unit}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setMovementsProduct(null)}>Close</Button>
         </DialogActions>
       </Dialog>
     </Box>
