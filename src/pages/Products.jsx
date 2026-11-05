@@ -106,41 +106,50 @@ export default function Products() {
       {data.length === 0 ? (
         <Typography variant="body2" color="text.secondary">No products yet.</Typography>
       ) : (
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>Name</TableCell><TableCell>Unit</TableCell><TableCell align="right">Purchase Price</TableCell><TableCell align="right">Selling Price</TableCell>
-              <TableCell align="right">Stock</TableCell><TableCell align="right">Min. Stock</TableCell>{canEdit && <TableCell />}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {data.map((p) => {
-              const low = Number(p.stock) <= Number(p.min_stock);
-              return (
-                <TableRow key={p.id}>
-                  <TableCell>{p.name}</TableCell>
-                  <TableCell>
-                    {p.unit}
-                    {p.alt_unit && <Chip label={`= ${p.alt_unit}`} size="small" variant="outlined" sx={{ ml: 0.5, height: 18, fontSize: 11 }} title={`1 ${p.alt_unit} = ${p.alt_unit_factor} ${p.unit}`} />}
-                  </TableCell>
-                  <TableCell align="right"><Money value={p.purchase_price} /></TableCell>
-                  <TableCell align="right"><Money value={p.sell_price} /></TableCell>
-                  <TableCell align="right">
-                    {low ? <Chip label={`${p.stock} ${p.unit}`} size="small" color="error" variant="outlined" /> : `${p.stock} ${p.unit}`}
-                    <Button size="small" sx={{ ml: 1 }} onClick={() => handleOpenMovements(p)}>Stock Book</Button>
-                  </TableCell>
-                  <TableCell align="right">{p.min_stock} {p.unit}</TableCell>
-                  {canEdit && (
-                    <TableCell align="right">
-                      <Button size="small" onClick={() => openEdit(p)}>Edit</Button>
-                      <IconButton size="small" onClick={() => deleteMutation.mutate(p.id)}><DeleteIcon fontSize="small" /></IconButton>
+        <Box sx={{ width: '100%', overflowX: 'auto' }}>
+          <Table sx={{ minWidth: 850, '& th, & td': { py: 2, px: 3 } }}>
+            <TableHead>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 'bold' }}>Name</TableCell>
+                <TableCell sx={{ fontWeight: 'bold' }}>Unit</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 'bold' }}>Purchase Price</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 'bold' }}>Selling Price</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 'bold' }}>Stock</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 'bold' }}>Min. Stock</TableCell>
+                {canEdit && <TableCell align="right" sx={{ fontWeight: 'bold' }}>Actions</TableCell>}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {data.map((p) => {
+                const low = Number(p.stock) <= Number(p.min_stock);
+                return (
+                  <TableRow key={p.id} hover>
+                    <TableCell sx={{ fontWeight: 500 }}>{p.name}</TableCell>
+                    <TableCell>
+                      {p.unit}
+                      {p.alt_unit && <Chip label={`= ${p.alt_unit}`} size="small" variant="outlined" sx={{ ml: 1, height: 20, fontSize: 11 }} title={`1 ${p.alt_unit} = ${p.alt_unit_factor} ${p.unit}`} />}
                     </TableCell>
-                  )}
-                </TableRow>
-              );
-            })}
-          </TableBody>
-        </Table>
+                    <TableCell align="right"><Money value={p.purchase_price} /></TableCell>
+                    <TableCell align="right"><Money value={p.sell_price} /></TableCell>
+                    <TableCell align="right">
+                      {low ? <Chip label={`${p.stock} ${p.unit}`} size="small" color="error" variant="outlined" sx={{ mr: 1 }} /> : `${p.stock} ${p.unit} `}
+                      <Button size="small" variant="outlined" onClick={() => handleOpenMovements(p)} sx={{ ml: 1 }}>Stock Book</Button>
+                    </TableCell>
+                    <TableCell align="right">{p.min_stock} {p.unit}</TableCell>
+                    {canEdit && (
+                      <TableCell align="right">
+                        <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end', alignItems: 'center' }}>
+                          <Button size="small" variant="outlined" onClick={() => openEdit(p)}>Edit</Button>
+                          <IconButton size="small" color="error" onClick={() => deleteMutation.mutate(p.id)}><DeleteIcon fontSize="small" /></IconButton>
+                        </Box>
+                      </TableCell>
+                    )}
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </Box>
       )}
 
       <Dialog open={open} onClose={() => setOpen(false)} fullWidth maxWidth="xs">
