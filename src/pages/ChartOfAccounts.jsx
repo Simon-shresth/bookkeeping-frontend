@@ -45,62 +45,47 @@ export default function ChartOfAccounts() {
           <Typography variant="h6" sx={{ mb: 1 }}>{group.category}</Typography>
           {group.headings.map((h) => (
             <Box key={h.heading} sx={{ mb: 2 }}>
-              {h.collapsed ? (
-                <Table size="small">
-                  <TableBody>
-                    <TableRow>
-                      <TableCell>
-                        {h.heading}{' '}
-                        <Typography component="span" variant="caption" color="text.secondary">
-                          ({h.subAccountCount} {h.heading === 'Accounts Receivable' ? 'customer' : 'supplier'} account{h.subAccountCount === 1 ? '' : 's'} — see General Ledger)
-                        </Typography>
-                      </TableCell>
-                      <TableCell align="right"><Money value={h.balance} /></TableCell>
-                      {canDelete && <TableCell sx={{ width: 40 }} />}
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              ) : (
-                <>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>{h.heading}</Typography>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Account</TableCell>
-                        <TableCell align="right">Balance</TableCell>
-                        {canDelete && <TableCell sx={{ width: 40 }} />}
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5, fontWeight: 600 }}>{h.heading}</Typography>
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Account</TableCell>
+                    <TableCell align="right">Balance</TableCell>
+                    {canDelete && <TableCell sx={{ width: 40 }} />}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {h.accounts.length === 0 ? (
+                    <TableRow><TableCell colSpan={3} align="center" sx={{ fontStyle: 'italic', opacity: 0.6 }}>No accounts under this heading.</TableCell></TableRow>
+                  ) : (
+                    h.accounts.map((a) => (
+                      <TableRow key={a.id}>
+                        <TableCell>{a.name}</TableCell>
+                        <TableCell align="right"><Money value={a.balance} /></TableCell>
+                        {canDelete && (
+                          <TableCell sx={{ width: 40, py: 0 }}>
+                            {!a.is_system && (
+                              <Tooltip title="Delete account (only if no transactions)">
+                                <IconButton
+                                  size="small"
+                                  disabled={deleteMutation.isPending}
+                                  onClick={() => {
+                                    if (window.confirm(`Delete account "${a.name}"? This cannot be undone.`)) {
+                                      deleteMutation.mutate(a.id);
+                                    }
+                                  }}
+                                >
+                                  <DeleteIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                          </TableCell>
+                        )}
                       </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {h.accounts.map((a) => (
-                        <TableRow key={a.id}>
-                          <TableCell>{a.name}</TableCell>
-                          <TableCell align="right"><Money value={a.balance} /></TableCell>
-                          {canDelete && (
-                            <TableCell sx={{ width: 40, py: 0 }}>
-                              {!a.is_system && (
-                                <Tooltip title="Delete account (only if no transactions)">
-                                  <IconButton
-                                    size="small"
-                                    disabled={deleteMutation.isPending}
-                                    onClick={() => {
-                                      if (window.confirm(`Delete account "${a.name}"? This cannot be undone.`)) {
-                                        deleteMutation.mutate(a.id);
-                                      }
-                                    }}
-                                  >
-                                    <DeleteIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
-                              )}
-                            </TableCell>
-                          )}
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </>
-              )}
+                    ))
+                  )}
+                </TableBody>
+              </Table>
             </Box>
           ))}
         </Box>
