@@ -104,20 +104,20 @@ export default function Reports() {
       <Table size="small" sx={{ mb: 1, maxWidth: 480 }}>
         <TableBody>
           <TableRow><TableCell colSpan={2}><strong>Assets</strong></TableCell></TableRow>
-          {bs.data.assets.map((a) => (
-            <TableRow key={a.name}><TableCell sx={{ pl: 3 }}>{a.name}</TableCell><TableCell align="right"><Money value={a.balance} /></TableCell></TableRow>
+          {bs.data.assets.map((h) => (
+            <TableRow key={h.heading}><TableCell sx={{ pl: 3 }}>{h.heading}</TableCell><TableCell align="right"><Money value={h.balance} /></TableCell></TableRow>
           ))}
           <TableRow><TableCell><strong>Total Assets</strong></TableCell><TableCell align="right"><Money value={bs.data.totalAssets} bold /></TableCell></TableRow>
 
           <TableRow><TableCell colSpan={2} sx={{ pt: 2 }}><strong>Liabilities</strong></TableCell></TableRow>
-          {bs.data.liabilities.map((a) => (
-            <TableRow key={a.name}><TableCell sx={{ pl: 3 }}>{a.name}</TableCell><TableCell align="right"><Money value={a.balance} /></TableCell></TableRow>
+          {bs.data.liabilities.map((h) => (
+            <TableRow key={h.heading}><TableCell sx={{ pl: 3 }}>{h.heading}</TableCell><TableCell align="right"><Money value={h.balance} /></TableCell></TableRow>
           ))}
           <TableRow><TableCell><strong>Total Liabilities</strong></TableCell><TableCell align="right"><Money value={bs.data.totalLiabilities} bold /></TableCell></TableRow>
 
           <TableRow><TableCell colSpan={2} sx={{ pt: 2 }}><strong>Equity</strong></TableCell></TableRow>
-          {bs.data.equityAccounts.map((a) => (
-            <TableRow key={a.name}><TableCell sx={{ pl: 3 }}>{a.name}</TableCell><TableCell align="right"><Money value={a.balance} /></TableCell></TableRow>
+          {bs.data.equityAccounts.map((h) => (
+            <TableRow key={h.heading}><TableCell sx={{ pl: 3 }}>{h.heading}</TableCell><TableCell align="right"><Money value={h.balance} /></TableCell></TableRow>
           ))}
           <TableRow><TableCell sx={{ pl: 3 }}>Current Period Earnings</TableCell><TableCell align="right"><Money value={bs.data.currentEarnings} /></TableCell></TableRow>
           <TableRow><TableCell><strong>Total Equity</strong></TableCell><TableCell align="right"><Money value={bs.data.totalEquity} bold /></TableCell></TableRow>
