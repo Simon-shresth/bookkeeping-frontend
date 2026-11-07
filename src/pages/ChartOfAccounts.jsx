@@ -22,6 +22,8 @@ export default function ChartOfAccounts() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['chart-of-accounts'] });
       qc.invalidateQueries({ queryKey: ['account-options'] });
+      qc.invalidateQueries({ queryKey: ['customers'] });
+      qc.invalidateQueries({ queryKey: ['suppliers'] });
       setDeleteError('');
     },
     onError: (err) => setDeleteError(err.message),
