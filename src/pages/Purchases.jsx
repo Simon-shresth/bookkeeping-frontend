@@ -51,7 +51,7 @@ export default function Purchases() {
   const { data: suppliers } = useQuery({ queryKey: ['suppliers'], queryFn: () => api.get('/suppliers') });
   const { data: products } = useQuery({ queryKey: ['products'], queryFn: () => api.get('/products') });
   const { data: accounts } = useQuery({ queryKey: ['liquid-accounts'], queryFn: () => api.get('/accounts/options') });
-  const liquidAccounts = useMemo(() => (accounts || []).filter((a) => a.heading === 'Cash' || a.heading === 'Bank'), [accounts]);
+  const liquidAccounts = useMemo(() => (accounts || []).filter((a) => a.heading === 'Cash' || a.heading === 'Bank' || a.heading === 'Loans'), [accounts]);
   const expenseAccounts = useMemo(() => (accounts || []).filter((a) => a.category === 'Expenses' || a.category === 'Assets'), [accounts]);
   const productById = useMemo(() => Object.fromEntries((products || []).map((p) => [p.id, p])), [products]);
 

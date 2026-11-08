@@ -22,7 +22,7 @@ export default function Expenses() {
   const { data: accounts } = useQuery({ queryKey: ['account-options'], queryFn: () => api.get('/accounts/options') });
 
   const expenseAccounts = useMemo(() => (accounts || []).filter((a) => a.category === 'Expenses' && a.heading !== 'Cost of Goods Sold'), [accounts]);
-  const liquidAccounts = useMemo(() => (accounts || []).filter((a) => a.heading === 'Cash' || a.heading === 'Bank'), [accounts]);
+  const liquidAccounts = useMemo(() => (accounts || []).filter((a) => a.heading === 'Cash' || a.heading === 'Bank' || a.heading === 'Loans'), [accounts]);
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);

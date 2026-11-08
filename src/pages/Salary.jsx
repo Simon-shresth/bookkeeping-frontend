@@ -137,7 +137,7 @@ function DisburseTab({ canDisburse }) {
 
   const paymentAccounts = useMemo(() => {
     if (!accounts) return [];
-    return accounts.filter((a) => ['Cash', 'Bank'].includes(a.heading));
+    return accounts.filter((a) => ['Cash', 'Bank', 'Loans'].includes(a.heading?.trim()));
   }, [accounts]);
 
   const activeEmployees = useMemo(() => (employees || []).filter((e) => e.is_active), [employees]);

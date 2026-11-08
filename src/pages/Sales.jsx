@@ -49,7 +49,7 @@ export default function Sales() {
   const { data: customers } = useQuery({ queryKey: ['customers'], queryFn: () => api.get('/customers') });
   const { data: products } = useQuery({ queryKey: ['products'], queryFn: () => api.get('/products') });
   const { data: accounts } = useQuery({ queryKey: ['liquid-accounts'], queryFn: () => api.get('/accounts/options') });
-  const liquidAccounts = useMemo(() => (accounts || []).filter((a) => a.heading === 'Cash' || a.heading === 'Bank'), [accounts]);
+  const liquidAccounts = useMemo(() => (accounts || []).filter((a) => a.heading === 'Cash' || a.heading === 'Bank' || a.heading === 'Loans'), [accounts]);
   const productById = useMemo(() => Object.fromEntries((products || []).map((p) => [p.id, p])), [products]);
 
   const [open, setOpen] = useState(false);
