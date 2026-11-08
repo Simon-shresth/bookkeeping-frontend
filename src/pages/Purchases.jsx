@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Box, Typography, Button, Table, TableHead, TableRow, TableCell, TableBody, Dialog, DialogTitle,
   DialogContent, DialogActions, TextField, Select, MenuItem, IconButton, Chip, Alert, CircularProgress,
-  InputAdornment, ToggleButtonGroup, ToggleButton, Divider, Autocomplete,
+  InputAdornment, ToggleButtonGroup, ToggleButton, Divider, Autocomplete, createFilterOptions,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/DeleteOutline';
@@ -15,6 +15,7 @@ import NewPartyDialog from '../components/NewPartyDialog';
 
 const todayDate = () => new Date().toISOString().slice(0, 10);
 const NEW_PRODUCT = '__new__';
+const filter = createFilterOptions();
 const emptyProductLine = () => ({ lineType: 'product', productId: '', qty: 1, unitPrice: '', newName: '', newSellPrice: '', newMinStock: 0, newUnit: 'pcs' });
 const emptyServiceLine = () => ({ lineType: 'service', description: '', accountId: '', qty: 1, unitPrice: '' });
 const emptyForm = () => ({ date: todayDate(), invoiceNumber: '', pragyapanNumber: '', supplierId: '', narration: '', lines: [emptyProductLine()], paidAmount: 0, accountId: '' });
@@ -335,11 +336,64 @@ export default function Purchases() {
                     <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                       <Autocomplete
                         size="small"
+                        autoHighlight
                         options={[...(products || []), { id: NEW_PRODUCT, name: '+ Add New Product' }]}
-                        getOptionLabel={(p) => p.name || ''}
+                        getOptionLabel={(p) => (typeof p === 'string' ? p : (p?.name || ''))}
                         isOptionEqualToValue={(p, v) => p.id === v.id}
-                        value={line.productId ? (line.productId === NEW_PRODUCT ? { id: NEW_PRODUCT, name: '+ Add New Product' } : (products || []).find((p) => p.id === line.productId) || null) : null}
-                        onChange={(_, v) => onProductChange(i, v ? v.id : '')}
+                        filterOptions={(options, params) => {
+                          const filtered = filter(options, params);
+                          const { inputValue } = params;
+                          const trimmed = inputValue.trim();
+                          const isExisting = (products || []).some(
+                            (opt) => trimmed.toLowerCase() === (opt.name || '').toLowerCase()
+                          );
+                          if (trimmed !== '' && !isExisting) {
+                            filtered.push({
+                              id: NEW_PRODUCT,
+                              name: `+ Add "${trimmed}"`,
+                              suggestedName: trimmed,
+                            });
+                          }
+                          return filtered;
+                        }}
+                        value={
+                          line.productId
+                            ? line.productId === NEW_PRODUCT
+                              ? { id: NEW_PRODUCT, name: line.newName ? `+ Add "${line.newName}"` : '+ Add New Product' }
+                              : (products || []).find((p) => p.id === line.productId) || null
+                            : null
+                        }
+                        onChange={(_, v) => {
+                          if (!v) {
+                            onProductChange(i, '');
+                          } else if (v.id === NEW_PRODUCT) {
+                            onProductChange(i, NEW_PRODUCT);
+                            if (v.suggestedName) {
+                              setLine(i, 'newName', v.suggestedName);
+                            }
+                          } else {
+                            onProductChange(i, v.id);
+                          }
+                        }}
+                        renderOption={(props, p) => {
+                          const { key, ...otherProps } = props;
+                          return (
+                            <Box component="li" key={key || (p.id + (p.suggestedName || ''))} {...otherProps}>
+                              {p.id === NEW_PRODUCT ? (
+                                <Typography variant="body2" color="primary.main" sx={{ fontWeight: 600 }}>
+                                  {p.name}
+                                </Typography>
+                              ) : (
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                                  <Typography variant="body2">{p.name}</Typography>
+                                  <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                                    {p.stock !== undefined ? `(stock: ${p.stock} ${p.unit})` : ''}
+                                  </Typography>
+                                </Box>
+                              )}
+                            </Box>
+                          );
+                        }}
                         renderInput={(params) => <TextField {...params} placeholder="Search product…" />}
                         sx={{ flex: 3 }}
                       />

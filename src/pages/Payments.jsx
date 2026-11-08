@@ -27,7 +27,10 @@ export default function Payments() {
   const { data: customers } = useQuery({ queryKey: ['customers'], queryFn: () => api.get('/customers') });
   const { data: suppliers } = useQuery({ queryKey: ['suppliers'], queryFn: () => api.get('/suppliers') });
   const { data: accounts } = useQuery({ queryKey: ['account-options'], queryFn: () => api.get('/accounts/options') });
-  const liquidAccounts = useMemo(() => (accounts || []).filter((a) => a.heading === 'Cash' || a.heading === 'Bank'), [accounts]);
+  const paymentAccounts = useMemo(
+    () => (accounts || []).filter((a) => ['Cash', 'Bank', 'Loans'].includes(a.heading?.trim())),
+    [accounts]
+  );
 
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -38,7 +41,7 @@ export default function Payments() {
   const parties = (isReceipt ? customers : suppliers) || [];
   const selectedParty = parties.find((p) => p.id === form.partyId);
 
-  const openNew = () => { setEditing(null); setForm({ ...emptyForm(), accountId: liquidAccounts[0]?.id || '' }); setOpen(true); };
+  const openNew = () => { setEditing(null); setForm({ ...emptyForm(), accountId: paymentAccounts[0]?.id || '' }); setOpen(true); };
   const openEdit = (p) => {
     setEditing(p);
     setForm({
@@ -156,12 +159,20 @@ export default function Payments() {
           <TextField label="Amount" type="number" value={form.amount} onChange={set('amount')} fullWidth />
           <Autocomplete
             size="small"
-            options={liquidAccounts}
+            autoHighlight
+            options={paymentAccounts}
+            groupBy={(a) => a.heading}
             getOptionLabel={(a) => a.name || ''}
             isOptionEqualToValue={(a, v) => a.id === v.id}
-            value={liquidAccounts.find((a) => a.id === form.accountId) || null}
+            value={paymentAccounts.find((a) => a.id === form.accountId) || null}
             onChange={(_, v) => setForm((f) => ({ ...f, accountId: v ? v.id : '' }))}
-            renderInput={(params) => <TextField {...params} label={isReceipt ? 'Received Into (Cash / Bank)' : 'Paid From (Cash / Bank)'} placeholder="Search account…" />}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label={isReceipt ? 'Received Into (Cash / Bank / Loans)' : 'Paid From (Cash / Bank / Loans)'}
+                placeholder="Search account…"
+              />
+            )}
             fullWidth
           />
           <Box sx={{ display: 'flex', gap: 2 }}>

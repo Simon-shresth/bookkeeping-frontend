@@ -269,10 +269,30 @@ export default function Sales() {
             const lineTotal = (+line.qty || 0) * (+line.price || 0);
             return (
               <Box key={i} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                <Select value={line.productId} onChange={(e) => onProductChange(i, e.target.value)} displayEmpty sx={{ flex: 3 }}>
-                  <MenuItem value="" disabled>Product…</MenuItem>
-                  {(products || []).map((prod) => <MenuItem key={prod.id} value={prod.id}>{prod.name} (stock: {prod.stock} {prod.unit})</MenuItem>)}
-                </Select>
+                <Autocomplete
+                  size="small"
+                  autoHighlight
+                  options={products || []}
+                  getOptionLabel={(prod) => (prod ? `${prod.name}${prod.stock !== undefined ? ` (stock: ${prod.stock} ${prod.unit})` : ''}` : '')}
+                  isOptionEqualToValue={(prod, v) => prod.id === v.id}
+                  value={(products || []).find((prod) => prod.id === line.productId) || null}
+                  onChange={(_, v) => onProductChange(i, v ? v.id : '')}
+                  renderOption={(props, prod) => {
+                    const { key, ...otherProps } = props;
+                    return (
+                      <Box component="li" key={key || prod.id} {...otherProps}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                          <Typography variant="body2">{prod.name}</Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                            (stock: {prod.stock} {prod.unit})
+                          </Typography>
+                        </Box>
+                      </Box>
+                    );
+                  }}
+                  renderInput={(params) => <TextField {...params} placeholder="Search product…" />}
+                  sx={{ flex: 3 }}
+                />
                 {p && p.alt_unit ? (
                   <Select value={line.unit} onChange={(e) => onUnitChange(i, e.target.value)} sx={{ flex: 1 }}>
                     <MenuItem value={p.unit}>{p.unit}</MenuItem>
