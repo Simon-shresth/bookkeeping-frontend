@@ -97,6 +97,8 @@ export default function GeneralLedger() {
       setImportStatus(`Successfully imported ${res.importedCount} entries from Excel! Accounts created automatically if missing.`);
       qc.invalidateQueries({ queryKey: ['account-options'] });
       qc.invalidateQueries({ queryKey: ['chart-of-accounts'] });
+      qc.invalidateQueries({ queryKey: ['customers'] });
+      qc.invalidateQueries({ queryKey: ['suppliers'] });
       if (accountId) {
         qc.invalidateQueries({ queryKey: ['ledger', accountId] });
       }
