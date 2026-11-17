@@ -24,6 +24,7 @@
   import OpeningBalances from './pages/OpeningBalances';
   import DayBook from './pages/DayBook';
   import FiscalYears from './pages/FiscalYears';
+  import Cheques from './pages/Cheques';
 
 
   export default function App() {
@@ -58,6 +59,7 @@
           <Route path="reports" element={<Reports />} />
           <Route path="users" element={<Users />} />
           <Route path="payments" element={<Payments />} />
+          <Route path="cheques" element={<Cheques />} />
           <Route path="reconciliation" element={<BankReconciliation />} />
           <Route path="audit" element={<AuditLog />} />
         </Route>

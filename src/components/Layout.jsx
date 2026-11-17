@@ -8,6 +8,7 @@ import {
   CheckCircleOutline, AssessmentOutlined, AdminPanelSettingsOutlined, HistoryOutlined,
   ChevronLeft, ChevronRight, PlaylistAddOutlined, CalendarTodayOutlined,
   EventRepeatOutlined, DarkModeOutlined, LightModeOutlined,
+  CreditCardOutlined, // New icon for Cheques
 } from '@mui/icons-material';
 import { useAuth, hasRole } from '../context/AuthContext';
 import { useThemeMode } from '../context/ThemeContext';
@@ -31,6 +32,7 @@ const ICONS = {
   '/expenses': AttachMoneyOutlined,
   '/salary': BadgeOutlined,
   '/payments': PaymentsOutlined,
+  '/cheques': CreditCardOutlined, // Map the path to the icon
   '/reconciliation': CheckCircleOutline,
   '/reports': AssessmentOutlined,
   '/users': AdminPanelSettingsOutlined,
@@ -53,6 +55,7 @@ const NAV_ITEMS = [
   { label: 'Expenses', path: '/expenses' },
   { label: 'Salary', path: '/salary' },
   { label: 'Payments', path: '/payments' },
+  { label: 'Cheques', path: '/cheques' }, // Added to nav
   { label: 'Bank Reconciliation', path: '/reconciliation', minRole: 'accountant' },
   { label: 'Reports', path: '/reports' },
   { label: 'Users', path: '/users', minRole: 'admin' },
