@@ -414,21 +414,21 @@ export default function Cheques() {
 
       {/* Cheques Table (Sorted serially in ascending order by cheque date) */}
       <Paper variant="outlined">
-        <Table sx={{ minWidth: 950 }}>
+        <Table sx={{ minWidth: 1400 }}>
           <TableHead>
             <TableRow sx={{ bgcolor: 'action.hover' }}>
-              <TableCell sx={{ fontWeight: 600, width: 60 }}>S.N.</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Cheque Date</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Cheque No.</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Customer</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Bank Name</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Drawee</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Owner</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 600 }}>Amount</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 600 }}>Cashed</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 600 }}>Remaining</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 600 }}>Status</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 600, width: 140 }}>Actions</TableCell>
+              <TableCell sx={{ fontWeight: 600, width: 50 }}>S.N.</TableCell>
+              <TableCell sx={{ fontWeight: 600, width: 110 }}>Cheque Date</TableCell>
+              <TableCell sx={{ fontWeight: 600, width: 120 }}>Cheque No.</TableCell>
+              <TableCell sx={{ fontWeight: 600, width: 150 }}>Customer</TableCell>
+              <TableCell sx={{ fontWeight: 600, width: 140 }}>Bank Name</TableCell>
+              <TableCell sx={{ fontWeight: 600, width: 140 }}>Drawee</TableCell>
+              <TableCell sx={{ fontWeight: 600, width: 120 }}>Owner</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 600, width: 110 }}>Amount</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 600, width: 100 }}>Cashed</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 600, width: 100 }}>Remaining</TableCell>
+              <TableCell align="center" sx={{ fontWeight: 600, width: 160 }}>Status</TableCell>
+              <TableCell align="center" sx={{ fontWeight: 600, width: 150 }}>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
