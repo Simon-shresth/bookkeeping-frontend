@@ -454,15 +454,31 @@ export default function Cheques() {
                     <TableCell sx={{ whiteSpace: 'nowrap' }}>
                       {String(c.cheque_date).slice(0, 10)}
                     </TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>
-                      {c.cheque_number}
+                    <TableCell sx={{ fontWeight: 600, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <Tooltip title={c.cheque_number} placement="top">
+                        <span>{c.cheque_number}</span>
+                      </Tooltip>
                     </TableCell>
-                    <TableCell sx={{ fontWeight: 500 }}>
-                      {c.customer_name}
+                    <TableCell sx={{ fontWeight: 500, maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <Tooltip title={c.customer_name} placement="top">
+                        <span>{c.customer_name}</span>
+                      </Tooltip>
                     </TableCell>
-                    <TableCell>{c.bank_name}</TableCell>
-                    <TableCell>{c.drawee_name}</TableCell>
-                    <TableCell>{c.cheque_owner}</TableCell>
+                    <TableCell sx={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <Tooltip title={c.bank_name} placement="top">
+                        <span>{c.bank_name}</span>
+                      </Tooltip>
+                    </TableCell>
+                    <TableCell sx={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <Tooltip title={c.drawee_name} placement="top">
+                        <span>{c.drawee_name}</span>
+                      </Tooltip>
+                    </TableCell>
+                    <TableCell sx={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <Tooltip title={c.cheque_owner} placement="top">
+                        <span>{c.cheque_owner}</span>
+                      </Tooltip>
+                    </TableCell>
                     <TableCell align="right">
                       <Money value={totalAmt} bold />
                     </TableCell>
