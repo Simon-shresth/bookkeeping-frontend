@@ -84,6 +84,7 @@ export default function Cheques() {
   const [cashMode, setCashMode] = useState('full'); // 'full' or 'partial'
   const [additionalPayment, setAdditionalPayment] = useState('');
   const [cashDate, setCashDate] = useState(today());
+  const [previousCashings, setPreviousCashings] = useState([]);
 
   const filteredCheques = useMemo(() => {
     return cheques.filter((c) => {
@@ -257,7 +258,7 @@ export default function Cheques() {
   };
 
   // Handlers for Cashing / Payment Recording
-  const handleOpenCashModal = (ch) => {
+  const handleOpenCashModal = async (ch) => {
     setSelectedChequeForCash(ch);
     const amount = Number(ch.amount) || 0;
     const alreadyCashed = Number(ch.cashed_amount) || 0;
@@ -266,6 +267,16 @@ export default function Cheques() {
     setCashDate(today());
     setCashMode(alreadyCashed === 0 ? 'full' : 'partial');
     setAdditionalPayment(String(remaining > 0 ? remaining : ''));
+
+    // Fetch previous cashings history
+    try {
+      const cashings = await api.get(`/cheques/${ch.id}/cashings`);
+      setPreviousCashings(cashings);
+    } catch (err) {
+      console.error('Failed to fetch cashings:', err);
+      setPreviousCashings([]);
+    }
+
     setCashModalOpen(true);
   };
 
@@ -761,6 +772,54 @@ export default function Cheques() {
                 </Box>
               </Box>
             </Box>
+
+            {/* Previous Partial Payments History */}
+            {previousCashings.length > 0 && (
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="subtitle2" fontWeight={600} gutterBottom>
+                  Previous Partial Payments
+                </Typography>
+                <Paper variant="outlined" sx={{ maxHeight: 200, overflow: 'auto' }}>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Date</TableCell>
+                        <TableCell align="right">Amount</TableCell>
+                        <TableCell align="center">Type</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {previousCashings.map((cashing) => (
+                        <TableRow key={cashing.id}>
+                          <TableCell>
+                            <Typography variant="body2">
+                              {new Date(cashing.cash_date).toLocaleDateString('en-GB', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric'
+                              })}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography variant="body2" fontWeight={500}>
+                              <Money value={cashing.amount} />
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Chip
+                              label={cashing.is_full ? 'Full' : 'Partial'}
+                              size="small"
+                              color={cashing.is_full ? 'success' : 'warning'}
+                              sx={{ fontSize: '0.7rem', height: 20 }}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </Paper>
+              </Box>
+            )}
 
             <FormControl component="fieldset" sx={{ mb: 2 }}>
               <FormLabel component="legend">Cashing Mode</FormLabel>
