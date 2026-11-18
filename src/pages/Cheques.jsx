@@ -61,7 +61,6 @@ export default function Cheques() {
   const [filterCustomer, setFilterCustomer] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
 
-  // Load cheques and customers
   const { data: cheques = [], isLoading, error } = useQuery({
     queryKey: ['cheques', filterCustomer?.id],
     queryFn: () => {
@@ -86,7 +85,6 @@ export default function Cheques() {
   const [additionalPayment, setAdditionalPayment] = useState('');
   const [cashDate, setCashDate] = useState(today());
 
-  // Filter cheques based on status tab
   const filteredCheques = useMemo(() => {
     return cheques.filter((c) => {
       const amount = Number(c.amount) || 0;
@@ -102,7 +100,6 @@ export default function Cheques() {
     });
   }, [cheques, statusFilter]);
 
-  // Overall Statistics
   const stats = useMemo(() => {
     let totalAmount = 0;
     let totalCashed = 0;
@@ -164,7 +161,7 @@ export default function Cheques() {
   });
 
   const cashMutation = useMutation({
-    mutationFn: ({ id, payload }) => api.patch(`/cheques/${id}/cash`, payload),
+    mutationFn: ({ id, payload }) => api.post(`/cheques/${id}/cash`, payload),
     onSuccess: () => {
       refresh();
       setCashModalOpen(false);
