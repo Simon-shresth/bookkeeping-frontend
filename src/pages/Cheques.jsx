@@ -412,23 +412,29 @@ export default function Cheques() {
         </ToggleButtonGroup>
       </Paper>
 
-      {/* Cheques Table (Sorted serially in ascending order by cheque date) */}
-      <Paper variant="outlined"sx={{ width: '100%', overflowX: 'auto' }}>
-        <Table sx={{ minWidth: 1410 }}>
+     {/* Cheques Table (Sorted serially in ascending order by cheque date) */}
+      <Paper variant="outlined" sx={{ width: '100%', overflowX: 'auto' }}>
+        <Table size="small" sx={{ width: '100%', minWidth: 1080 }}>
           <TableHead>
             <TableRow sx={{ bgcolor: 'action.hover' }}>
-              <TableCell sx={{ fontWeight: 600, width: 50 }}>S.N.</TableCell>
-              <TableCell sx={{ fontWeight: 600, width: 110 }}>Cheque Date</TableCell>
-              <TableCell sx={{ fontWeight: 600, width: 120 }}>Cheque No.</TableCell>
-              <TableCell sx={{ fontWeight: 600, width: 150 }}>Customer</TableCell>
-              <TableCell sx={{ fontWeight: 600, width: 140 }}>Bank Name</TableCell>
-              <TableCell sx={{ fontWeight: 600, width: 140 }}>Drawee</TableCell>
-              <TableCell sx={{ fontWeight: 600, width: 120 }}>Owner</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 600, width: 110 }}>Amount</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 600, width: 100 }}>Cashed</TableCell>
-              <TableCell align="right" sx={{ fontWeight: 600, width: 100 }}>Remaining</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 600, width: 160 }}>Status</TableCell>
-              <TableCell align="center" sx={{ fontWeight: 600, width: 150 }}>Actions</TableCell>
+              <TableCell sx={{ fontWeight: 600, width: 45, px: 1 }}>S.N.</TableCell>
+              <TableCell sx={{ fontWeight: 600, width: 95, px: 1 }}>Cheque Date</TableCell>
+              <TableCell sx={{ fontWeight: 600, width: 100, px: 1 }}>Cheque No.</TableCell>
+              <TableCell sx={{ fontWeight: 600, width: 135, px: 1 }}>Customer</TableCell>
+              <TableCell sx={{ fontWeight: 600, width: 100, px: 1 }}>Bank Name</TableCell>
+              <TableCell sx={{ fontWeight: 600, width: 100, px: 1 }}>Drawee</TableCell>
+              <TableCell sx={{ fontWeight: 600, width: 110, px: 1 }}>Owner</TableCell>
+              <TableCell align="right" sx={{ fontWeight: 600, width: 120, px: 1, whiteSpace: 'nowrap' }}>
+                Amount
+              </TableCell>
+              <TableCell align="right" sx={{ fontWeight: 600, width: 115, px: 1, whiteSpace: 'nowrap' }}>
+                Cashed
+              </TableCell>
+              <TableCell align="right" sx={{ fontWeight: 600, width: 120, px: 1, whiteSpace: 'nowrap' }}>
+                Remaining
+              </TableCell>
+              <TableCell align="center" sx={{ fontWeight: 600, width: 145, px: 1 }}>Status</TableCell>
+              <TableCell align="center" sx={{ fontWeight: 600, width: 105, px: 1 }}>Actions</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -448,55 +454,99 @@ export default function Cheques() {
 
                 return (
                   <TableRow key={c.id} hover>
-                    <TableCell sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                    <TableCell sx={{ color: 'text.secondary', fontWeight: 500, px: 1 }}>
                       {index + 1}
                     </TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                    <TableCell sx={{ whiteSpace: 'nowrap', px: 1 }}>
                       {String(c.cheque_date).slice(0, 10)}
                     </TableCell>
-                    <TableCell sx={{ fontWeight: 600, maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <TableCell
+                      sx={{
+                        fontWeight: 600,
+                        maxWidth: 110,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        px: 1,
+                      }}
+                    >
                       <Tooltip title={c.cheque_number} placement="top">
                         <span>{c.cheque_number}</span>
                       </Tooltip>
                     </TableCell>
-                    <TableCell sx={{ fontWeight: 500, maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <TableCell
+                      sx={{
+                        fontWeight: 500,
+                        maxWidth: 145,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        px: 1,
+                      }}
+                    >
                       <Tooltip title={c.customer_name} placement="top">
                         <span>{c.customer_name}</span>
                       </Tooltip>
                     </TableCell>
-                    <TableCell sx={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <TableCell
+                      sx={{
+                        maxWidth: 110,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        px: 1,
+                      }}
+                    >
                       <Tooltip title={c.bank_name} placement="top">
                         <span>{c.bank_name}</span>
                       </Tooltip>
                     </TableCell>
-                    <TableCell sx={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <TableCell
+                      sx={{
+                        maxWidth: 110,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        px: 1,
+                      }}
+                    >
                       <Tooltip title={c.drawee_name} placement="top">
                         <span>{c.drawee_name}</span>
                       </Tooltip>
                     </TableCell>
-                    <TableCell sx={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <TableCell
+                      sx={{
+                        maxWidth: 120,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        px: 1,
+                      }}
+                    >
                       <Tooltip title={c.cheque_owner} placement="top">
                         <span>{c.cheque_owner}</span>
                       </Tooltip>
                     </TableCell>
-                    <TableCell align="right">
+                    <TableCell align="right" sx={{ px: 1, whiteSpace: 'nowrap' }}>
                       <Money value={totalAmt} bold />
                     </TableCell>
-                    <TableCell align="right">
+                    <TableCell align="right" sx={{ px: 1, whiteSpace: 'nowrap' }}>
                       {cashedAmt > 0 ? (
                         <Money value={cashedAmt} color={isFull ? 'success.main' : 'warning.main'} />
                       ) : (
                         '—'
                       )}
                     </TableCell>
-                    <TableCell align="right">
+                    <TableCell align="right" sx={{ px: 1, whiteSpace: 'nowrap' }}>
                       {remaining > 0 ? (
                         <Money value={remaining} color="error.main" bold />
                       ) : (
-                        <Typography variant="body2" color="success.main" fontWeight={600}>Nil</Typography>
+                        <Typography variant="body2" color="success.main" fontWeight={600}>
+                          Nil
+                        </Typography>
                       )}
                     </TableCell>
-                    <TableCell align="center">
+                    <TableCell align="center" sx={{ px: 1, whiteSpace: 'nowrap' }}>
                       {isFull ? (
                         <Chip
                           label="Cashed in Full"
@@ -523,8 +573,8 @@ export default function Cheques() {
                         />
                       )}
                     </TableCell>
-                    <TableCell align="center">
-                      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.5 }}>
+                    <TableCell align="center" sx={{ px: 1, whiteSpace: 'nowrap' }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.25 }}>
                         {canEdit && (
                           <Tooltip title={isFull ? 'Update Cash Record' : 'Cash / Record Payment'}>
                             <IconButton
