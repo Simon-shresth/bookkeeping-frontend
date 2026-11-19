@@ -160,7 +160,7 @@ export default function Layout() {
             <Button size="small" onClick={signOut}>Sign out</Button>
           </Toolbar>
         </AppBar>
-        <Box component="main" sx={{ flexGrow: 1, minWidth: 0, p: 3, width: '95%' }}>
+        <Box component="main" sx={{ flexGrow: 1, minWidth: 0, p: 3, width: '97.5%' }}>
           <Outlet />
         </Box>
       </Box>
