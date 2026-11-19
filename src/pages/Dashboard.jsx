@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Box, Typography, Table, TableHead, TableRow, TableCell, TableBody, Chip, CircularProgress, Alert, Tabs, Tab, Card, CardContent, Divider, Button } from '@mui/material';
+import { Box, Typography, Table, TableHead, TableRow, TableCell, TableBody, Chip, CircularProgress, Alert, Tabs, Tab, Card, CardContent, Divider, Button, IconButton, Tooltip, Paper } from '@mui/material';
+import PaymentsIcon from '@mui/icons-material/PaymentsOutlined';
+import CheckCircleIcon from '@mui/icons-material/CheckCircleOutline';
 import { api } from '../lib/api';
-import Money from '../components/Money';
+import Money, { formatNepaliNumber } from '../components/Money';
+import { useAuth, hasRole } from '../context/AuthContext';
 
 function formatMonthKey(key) {
   if (!key) return '';
@@ -111,8 +114,20 @@ function KeyFiguresTable({ figures, isMonthly, fyLabel }) {
 }
 
 export default function Dashboard() {
+  const { profile } = useAuth();
+  const canEdit = hasRole(profile, 'manager');
   const [tab, setTab] = useState('monthly'); // 'monthly' | 'yearly'
   const { data, isLoading, error } = useQuery({ queryKey: ['dashboard'], queryFn: () => api.get('/dashboard') });
+
+  // Fetch today's cheques
+  const today = new Date().toISOString().slice(0, 10);
+  const { data: cheques = [] } = useQuery({
+    queryKey: ['cheques'],
+    queryFn: () => api.get('/cheques'),
+  });
+
+  // Filter cheques for today's date
+  const todaysCheques = cheques.filter(c => String(c.cheque_date).slice(0, 10) === today);
 
   if (isLoading) return <CircularProgress size={24} />;
   if (error) return <Alert severity="error">{error.message}</Alert>;
@@ -139,6 +154,129 @@ export default function Dashboard() {
             <KeyFiguresTable key="monthly" figures={monthly} isMonthly />
           ) : (
             <KeyFiguresTable key="yearly" figures={yearly} isMonthly={false} fyLabel={fyLabel} />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Today's Cheques */}
+      <Card sx={{ mb: 4 }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+            <Typography variant="h6">Today's Cheques ({today})</Typography>
+            <Chip
+              label={`${todaysCheques.length} ${todaysCheques.length === 1 ? 'cheque' : 'cheques'}`}
+              color="primary"
+              size="small"
+            />
+          </Box>
+          <Divider sx={{ mb: 2 }} />
+          {todaysCheques.length === 0 ? (
+            <Typography variant="body2" color="text.secondary">
+              No cheques dated for today.
+            </Typography>
+          ) : (
+            <Paper variant="outlined">
+              <Table size="small">
+                <TableHead>
+                  <TableRow sx={{ bgcolor: 'action.hover' }}>
+                    <TableCell sx={{ fontWeight: 600 }}>Cheque No.</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Customer</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Bank</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Drawee</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600 }}>Amount</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600 }}>Cashed</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600 }}>Remaining</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 600 }}>Status</TableCell>
+                    {canEdit && <TableCell align="center" sx={{ fontWeight: 600 }}>Actions</TableCell>}
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {todaysCheques.map((c) => {
+                    const totalAmt = Number(c.amount) || 0;
+                    const cashedAmt = Number(c.cashed_amount) || 0;
+                    const remaining = Math.max(0, totalAmt - cashedAmt);
+                    const isFull = c.is_cashed || cashedAmt >= totalAmt;
+                    const isPartial = !isFull && cashedAmt > 0;
+
+                    return (
+                      <TableRow key={c.id} hover>
+                        <TableCell sx={{ fontWeight: 600 }}>{c.cheque_number}</TableCell>
+                        <TableCell sx={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <Tooltip title={c.customer_name} placement="top">
+                            <span>{c.customer_name}</span>
+                          </Tooltip>
+                        </TableCell>
+                        <TableCell sx={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <Tooltip title={c.bank_name} placement="top">
+                            <span>{c.bank_name}</span>
+                          </Tooltip>
+                        </TableCell>
+                        <TableCell sx={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <Tooltip title={c.drawee_name} placement="top">
+                            <span>{c.drawee_name}</span>
+                          </Tooltip>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Money value={totalAmt} bold />
+                        </TableCell>
+                        <TableCell align="right">
+                          {cashedAmt > 0 ? (
+                            <Money value={cashedAmt} color={isFull ? 'success.main' : 'warning.main'} />
+                          ) : (
+                            '—'
+                          )}
+                        </TableCell>
+                        <TableCell align="right">
+                          {remaining > 0 ? (
+                            <Money value={remaining} color="error.main" bold />
+                          ) : (
+                            <Typography variant="body2" color="success.main" fontWeight={600}>Nil</Typography>
+                          )}
+                        </TableCell>
+                        <TableCell align="center">
+                          {isFull ? (
+                            <Chip
+                              label="Cashed"
+                              size="small"
+                              color="success"
+                              variant="filled"
+                              icon={<CheckCircleIcon />}
+                            />
+                          ) : isPartial ? (
+                            <Chip
+                              label={`Partial`}
+                              size="small"
+                              color="warning"
+                              variant="outlined"
+                            />
+                          ) : (
+                            <Chip
+                              label="Uncashed"
+                              size="small"
+                              variant="outlined"
+                              color="default"
+                            />
+                          )}
+                        </TableCell>
+                        {canEdit && (
+                          <TableCell align="center">
+                            <Tooltip title={isFull ? 'View Details' : 'Cash / Record Payment'}>
+                              <IconButton
+                                size="small"
+                                color={isFull ? 'default' : 'primary'}
+                                onClick={() => window.location.href = '/cheques'}
+                              >
+                                <PaymentsIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </Paper>
           )}
         </CardContent>
       </Card>
