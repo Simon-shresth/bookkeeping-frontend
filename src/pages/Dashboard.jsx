@@ -179,8 +179,8 @@ export default function Dashboard() {
               <Table size="small">
                 <TableHead>
                   <TableRow sx={{ bgcolor: 'action.hover' }}>
-                    <TableCell sx={{ fontWeight: 600 }}>Cheque No.</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Customer</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Cheque No.</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Bank</TableCell>
                     <TableCell sx={{ fontWeight: 600 }}>Drawee</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 600 }}>Amount</TableCell>
@@ -200,12 +200,12 @@ export default function Dashboard() {
 
                     return (
                       <TableRow key={c.id} hover>
-                        <TableCell sx={{ fontWeight: 600 }}>{c.cheque_number}</TableCell>
                         <TableCell sx={{ maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           <Tooltip title={c.customer_name} placement="top">
                             <span>{c.customer_name}</span>
                           </Tooltip>
                         </TableCell>
+                        <TableCell sx={{ fontWeight: 600 }}>{c.cheque_number}</TableCell>
                         <TableCell sx={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           <Tooltip title={c.bank_name} placement="top">
                             <span>{c.bank_name}</span>
