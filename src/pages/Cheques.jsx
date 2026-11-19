@@ -59,6 +59,7 @@ export default function Cheques() {
   const qc = useQueryClient();
 
   const [filterCustomer, setFilterCustomer] = useState(null);
+  const [filterDate, setFilterDate] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
 
   const { data: cheques = [], isLoading, error } = useQuery({
@@ -94,12 +95,18 @@ export default function Cheques() {
       const isPartial = !isFull && cashed > 0;
       const isUncashed = !isFull && cashed === 0;
 
-      if (statusFilter === 'uncashed') return isUncashed;
-      if (statusFilter === 'partial') return isPartial;
-      if (statusFilter === 'full') return isFull;
+      if (statusFilter === 'uncashed' && !isUncashed) return false;
+      if (statusFilter === 'partial' && !isPartial) return false;
+      if (statusFilter === 'full' && !isFull) return false;
+
+      if (filterDate) {
+        const chequeDate = String(c.cheque_date).slice(0, 10);
+        if (chequeDate !== filterDate) return false;
+      }
+
       return true;
     });
-  }, [cheques, statusFilter]);
+  }, [cheques, statusFilter, filterDate]);
 
   const stats = useMemo(() => {
     let totalAmount = 0;
@@ -393,7 +400,29 @@ export default function Cheques() {
             startIcon={<ClearIcon />}
             onClick={() => setFilterCustomer(null)}
           >
-            Clear Filter
+            Clear Customer
+          </Button>
+        )}
+
+        <TextField
+          type="date"
+          size="small"
+          label="Filter by Date"
+          value={filterDate}
+          onChange={(e) => setFilterDate(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+          sx={{ width: 160 }}
+        />
+
+        {filterDate && (
+          <Button
+            size="small"
+            variant="outlined"
+            color="inherit"
+            startIcon={<ClearIcon />}
+            onClick={() => setFilterDate('')}
+          >
+            Clear Date
           </Button>
         )}
 
@@ -413,8 +442,8 @@ export default function Cheques() {
       </Paper>
 
      {/* Cheques Table (Sorted serially in ascending order by cheque date) */}
-      <Paper variant="outlined" sx={{ width: '100%', overflowX: 'auto' }}>
-        <Table size="small" sx={{ width: '100%', minWidth: 1080 }}>
+      <Paper variant="outlined" sx={{ width: '100%'}}>
+        <Table size="small" sx={{ width: '100%' }}>
           <TableHead>
             <TableRow sx={{ bgcolor: 'action.hover' }}>
               <TableCell sx={{ fontWeight: 600, width: 45, px: 1 }}>S.N.</TableCell>
