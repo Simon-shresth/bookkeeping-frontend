@@ -60,7 +60,7 @@ export default function Cheques() {
 
   const [filterCustomer, setFilterCustomer] = useState(null);
   const [filterDate, setFilterDate] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('remaining');
 
   const { data: cheques = [], isLoading, error } = useQuery({
     queryKey: ['cheques', filterCustomer?.id],
@@ -98,6 +98,9 @@ export default function Cheques() {
       if (statusFilter === 'uncashed' && !isUncashed) return false;
       if (statusFilter === 'partial' && !isPartial) return false;
       if (statusFilter === 'full' && !isFull) return false;
+
+      // Fully cashed cheques should be excluded from 'remaining' tab
+      if (statusFilter === 'remaining' && isFull) return false;
 
       if (filterDate) {
         const chequeDate = String(c.cheque_date).slice(0, 10);
@@ -434,7 +437,7 @@ export default function Cheques() {
           exclusive
           onChange={(_, val) => val && setStatusFilter(val)}
         >
-          <ToggleButton value="all">All ({cheques.length})</ToggleButton>
+          <ToggleButton value="remaining">Remaining ({stats.partialCount + stats.uncashedCount})</ToggleButton>
           <ToggleButton value="uncashed">Uncashed ({stats.uncashedCount})</ToggleButton>
           <ToggleButton value="partial">Partial ({stats.partialCount})</ToggleButton>
           <ToggleButton value="full">Cashed ({stats.fullCount})</ToggleButton>
