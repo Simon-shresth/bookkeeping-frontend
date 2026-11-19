@@ -413,8 +413,8 @@ export default function Cheques() {
       </Paper>
 
       {/* Cheques Table (Sorted serially in ascending order by cheque date) */}
-      <Paper variant="outlined">
-        <Table>
+      <Paper variant="outlined"sx={{ width: '100%', overflowX: 'auto' }}>
+        <Table sx={{ minWidth: 1410 }}>
           <TableHead>
             <TableRow sx={{ bgcolor: 'action.hover' }}>
               <TableCell sx={{ fontWeight: 600, width: 50 }}>S.N.</TableCell>
