@@ -282,14 +282,13 @@ export default function Dashboard() {
       </Card>
 
       {/* Loan Ageing */}
-
+      <Paper variant="outlined">
       <Typography variant="h6" sx={{ mb: 1 }}>Loan Ageing</Typography>
       {loanAgeing.length === 0 ? (
         <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
           No loans on record.
         </Typography>
       ) : (
-        <Paper variant="outlined"> //addedUserSelf
         <Table size="small" sx={{ mb: 4 }}>
           <TableHead>
             <TableRow>
@@ -335,8 +334,8 @@ export default function Dashboard() {
             ))}
           </TableBody>
         </Table>
-        </Paper>
       )}
+      </Paper>
 
       {/* Inventory Alerts */}
       <Typography variant="h6" sx={{ mb: 1 }}>Inventory Alerts</Typography>
