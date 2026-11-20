@@ -47,7 +47,6 @@
           <Route path="journal" element={<JournalEntries />} />
           <Route path="ledger" element={<GeneralLedger />} />
           <Route path="opening-balances" element={<OpeningBalances />} />
-          <Route path="daybook" element={<DayBook />} />
           <Route path="fiscal-years" element={<FiscalYears />} />
           <Route path="customers" element={<Customers />} />
           <Route path="suppliers" element={<Suppliers />} />
