@@ -25,6 +25,7 @@
   import DayBook from './pages/DayBook';
   import FiscalYears from './pages/FiscalYears';
   import Cheques from './pages/Cheques';
+import BackupRestore from './pages/BackupRestore';
 
 
   export default function App() {
