@@ -4,6 +4,7 @@ import CloudDownloadOutlined from '@mui/icons-material/CloudDownloadOutlined';
 import CloudUploadOutlined from '@mui/icons-material/CloudUploadOutlined';
 import { api, saveBlob } from '../lib/api';
 import { useAuth, hasRole } from '../context/AuthContext';
+import Backup from '@mui/icons-material/Backup';
 
 export default function BackupRestore() {
   const { profile } = useAuth();
@@ -67,6 +68,7 @@ export default function BackupRestore() {
       <Typography variant="body2" color="text.secondary" paragraph>
         Secure your bookkeeping data by creating backups regularly or restore an existing backup file in case of system migration or data recovery.
       </Typography>
+      <Divider sx={{ mb: 2 }} />
 
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
       {successMsg && <Alert severity="success" sx={{ mb: 2 }}>{successMsg}</Alert>}
@@ -82,9 +84,15 @@ export default function BackupRestore() {
             startIcon={backingUp ? <CircularProgress size={20} color="inherit" /> : <CloudDownloadOutlined />}
             onClick={handleBackup}
             disabled={backingUp}
+            sx={{ mb: 2 }}
           >
             {backingUp ? 'Generating Backup...' : 'Download Database Backup'}
           </Button>
+          {backingUp && (
+            <Box sx={{ width: '100%', mt: 2 }}>
+              <Typography variant="caption" color="text.secondary">Creating a full database backup may take a few minutes on large datasets...</Typography>
+            </Box>
+          )}
         </Box>
       </Paper>
 

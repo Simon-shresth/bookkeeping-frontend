@@ -28,6 +28,8 @@
 import BackupRestore from './pages/BackupRestore';
 
 
+
+
   export default function App() {
     return (
       <Routes>
@@ -62,6 +64,7 @@ import BackupRestore from './pages/BackupRestore';
           <Route path="cheques" element={<Cheques />} />
           <Route path="reconciliation" element={<BankReconciliation />} />
           <Route path="audit" element={<AuditLog />} />
+          <Route path="backup-restore" element={<BackupRestore />} />
         </Route>
       </Routes>
     );

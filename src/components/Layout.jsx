@@ -12,6 +12,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth, hasRole } from '../context/AuthContext';
 import { useThemeMode } from '../context/ThemeContext';
+import BackupRestore from '../pages/BackupRestore';
 
 const DRAWER_WIDTH = 240;
 const DRAWER_WIDTH_COLLAPSED = 72;
@@ -36,6 +37,7 @@ const ICONS = {
   '/reports': AssessmentOutlined,
   '/users': AdminPanelSettingsOutlined,
   '/audit': HistoryOutlined,
+  '/backup-restore': SettingsBackupRestoreOutlined,
 };
 
 const NAV_ITEMS = [
@@ -58,6 +60,7 @@ const NAV_ITEMS = [
   { label: 'Reports', path: '/reports' },
   { label: 'Users', path: '/users', minRole: 'admin' },
   { label: 'Audit Log', path: '/audit', minRole: 'admin' },
+  { label: 'Backup & Restore', path: '/backup-restore', minRole: 'admin' },
 ];
 
 export default function Layout() {
